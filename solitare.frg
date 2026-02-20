@@ -1,10 +1,25 @@
 #lang forge/froglet
 
+abstract sig Boolean {}
+one sig True, False extends Boolean {}
+
 sig Card {
     // suit: something,
-    // rank: something Int,
+    // rank: Int,
     // color: maybe?
-    // face down
+    // faceDown: Boolean,
+    nextCard: lone Card,
+    prevCard: lone Card
+}
+
+sig Space { // where the cards are on the board? the playing space?
+    stack: set Card // can we use set when we're modeling order??? also can we use set in froglet
+    // empty: boolean?
+}
+
+sig EndSpace {
+    endStack: set Card,
+    // complete: boolean?
 }
 
 /*
@@ -47,5 +62,34 @@ what is a wellformed game state:
     - 5) ...
 - no cards other than the card that was moved by player changes?
     - well except for when the bottom face down cards are revealed
-    - 
+- 
 */
+
+pred wellformed {
+
+}
+
+/*
+Card stack properties related predicates
+*/
+
+pred isLowerRankThan[c1, c2: Card] {
+    
+}
+
+pred isSameColor[c1, c2: Card] {
+    
+}
+
+pred isSameSuit[c1, c2: Card] {
+    
+}
+
+pred stackIsAscendingOrder {
+    
+}
+
+pred stackIsDescendingOrder {
+    
+}
+

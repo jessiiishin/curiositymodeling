@@ -2,25 +2,30 @@
 
 abstract sig Boolean {}
 one sig True, False extends Boolean {}
+abstract sig Suit {}
+abstract sig Color {}
+one sig Red, Black extends Color {}
+one sig Heart, Diamond, Spade, Clover extends Suit {}
 
 sig Card {
-    // suit: something,
-    // rank: Int,
-    // color: maybe?
-    // faceDown: Boolean,
-    nextCard: lone Card,
-    prevCard: lone Card
+    suit: one Suit,
+    color: one Color,
+    rank: one Int,
+    faceDown: one Boolean,
+    next: lone Card,
+    prev: lone Card
 }
 
-sig Space { // where the cards are on the board? the playing space?
-    stack: set Card // can we use set when we're modeling order??? also can we use set in froglet
-    // empty: boolean?
+sig Pile {
+    stack: lone Card,
+    empty: one Boolean
 }
 
-sig EndSpace {
-    endStack: set Card,
-    // complete: boolean?
+sig EndPile {
+    endStack: lone Card,
+    complete: one Boolean
 }
+
 
 /*
 Things to possibly implement
@@ -30,7 +35,7 @@ when are cards stackable?:
 - in order of rank, never out of order
 
 when are cards stackable in the complete pile?:
-- same suite
+- same suit
 - ascending rank order
 
 what can go in empty space:
@@ -69,27 +74,52 @@ pred wellformed {
 
 }
 
+pred wellformed_initial {
+    #{p: Pile | p.empty = False} = 7
+    some p1: Pile | #{reachable[p1, p1.stack, next]} = 1
+}
+
 /*
 Card stack properties related predicates
 */
 
 pred isLowerRankThan[c1, c2: Card] {
-    
+    c1.rank < c2.rank
 }
 
 pred isSameColor[c1, c2: Card] {
-    
+    c1.color = c2.color
 }
 
 pred isSameSuit[c1, c2: Card] {
-    
+    c1.suit = c2.suit
 }
 
-pred stackIsAscendingOrder {
-    
+pred pileIsAscendingOrder { // A -> K
+    all c: Card | {
+        some c.next implies isLowerRankThan[c, c.next]
+        some c.prev implies isLowerRankThan[c.prev, c]
+    }
+}
+// maybe we just need a legalPile pred and force forge to keep this pred
+// true with every movement instead
+
+pred pileIsDescendingOrder { // K -> A
+    all c: Card | {
+        some c.next implies isLowerRankThan[c.next, c]
+        some c.prev implies isLowerRankThan[c, c.prev]
+    }
 }
 
-pred stackIsDescendingOrder {
-    
-}
+/*
+Player movement predicates
+*/
 
+pred validMove {}
+
+/*
+Game properties predicates
+*/
+
+pred winnable {}
+pred stayWinning {} //?

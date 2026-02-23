@@ -7,6 +7,13 @@ abstract sig Color {}
 one sig Red, Black extends Color {}
 one sig Heart, Diamond, Spade, Clover extends Suit {}
 
+sig GameState {
+    init: lone GameState,
+    deckTop: lone Card,
+    discardTop: lone Card,
+    columnTop: pfunc Pile -> Card
+}
+
 sig Card {
     suit: one Suit,
     color: one Color,
@@ -74,9 +81,10 @@ pred wellformed {
 
 }
 
-pred wellformed_initial {
+pred wellformed_initial[gs: GameState] {
     #{p: Pile | p.empty = False} = 7
     some p1: Pile | #{reachable[p1, p1.stack, next]} = 1
+    some gs.init
 }
 
 /*
@@ -123,3 +131,7 @@ Game properties predicates
 
 pred winnable {}
 pred stayWinning {} //?
+
+run {
+    wellformed
+} for exactly 1 GameState, 8 Card

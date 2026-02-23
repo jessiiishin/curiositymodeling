@@ -101,8 +101,41 @@ pred pileIsAscendingOrder { // A -> K
         some c.prev implies isLowerRankThan[c.prev, c]
     }
 }
+
+pred allSameSuit {
+    all disj c1, c2: Card | {
+        c1.suit = c2.suit
+    }
+}
+
 // maybe we just need a legalPile pred and force forge to keep this pred
 // true with every movement instead
+
+pred legalPile {
+    all pile: Pile | {
+        all c: Card | {
+            reachable[c, pile.stack, next]
+            some c.next implies isLowerRankThan[c, c.next]
+            some c.prev implies isLowerRankThan[c.prev, c]
+        }
+        one lastCard: Card | {
+            lastCard.faceDown = False
+            no lastCard.next
+        }
+    }
+}
+
+pred legalEndPile {
+    all endpile: EndPile | {
+        allSameSuit
+        all c: Card | {
+            reachable[c, endpile.stack, next]
+            some c.next implies isLowerRankThan[c.next, c]
+            some c.prev implies isLowerRankThan[c, c.prev]
+            c.faceDown = True
+        }
+    }
+}
 
 pred pileIsDescendingOrder { // K -> A
     all c: Card | {

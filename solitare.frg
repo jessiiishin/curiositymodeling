@@ -1,38 +1,5 @@
 #lang forge/froglet
 
-abstract sig Boolean {}
-one sig True, False extends Boolean {}
-abstract sig Suit {}
-abstract sig Color {}
-one sig Red, Black extends Color {}
-one sig Heart, Diamond, Spade, Clover extends Suit {}
-
-sig GameState {
-    init: lone GameState,
-    deckTop: lone Card,
-    discardTop: lone Card,
-    columnTop: pfunc Pile -> Card
-}
-
-sig Card {
-    suit: one Suit,
-    color: one Color,
-    rank: one Int,
-    faceDown: one Boolean,
-    next: lone Card,
-    prev: lone Card
-}
-
-sig Pile {
-    stack: lone Card,
-    empty: one Boolean
-}
-
-sig EndPile {
-    endStack: lone Card,
-    complete: one Boolean
-}
-
 
 /*
 Things to possibly implement
@@ -77,15 +44,75 @@ what is a wellformed game state:
 - 
 */
 
-pred wellformed {
+abstract sig Boolean {}
+one sig True, False extends Boolean {}
+abstract sig Suit {}
+abstract sig Color {}
+one sig Red, Black extends Color {}
+one sig Heart, Diamond, Spade, Clover extends Suit {}
 
+sig GameState {
+    init: lone GameState,
+    nextState: lone GameState,
+
+    deckTop: pfunc Deck -> Card,
+    discardTop: pfunc EndPile -> Card,
+    columnTop: pfunc Pile -> Card,
+    
+    faceDown: pfunc Card -> Boolean,
+    nextCard: pfunc Card -> Card,
+    prevCard: pfunc Card -> Card,
+
+    endPileComplete: pfunc EndPile -> Boolean,
+    pileEmpty: pfunc Pile -> Boolean
+}
+// if gamestate is what changes cards next and prev will not change
+
+sig Card {
+    suit: one Suit,
+    color: one Color,
+    rank: one Int
 }
 
-pred wellformed_initial[gs: GameState] {
-    #{p: Pile | p.empty = False} = 7
-    some p1: Pile | #{reachable[p1, p1.stack, next]} = 1
-    some gs.init
+sig Pile {}
+sig EndPile {}
+sig Deck {}
+
+
+/*
+12 cards:
+- 1, 2, 3 in each suit
+- four suits
+
+-> 3 piles with 1, 2, 3 cards, 6 cards in deck
+*/
+pred twelve_wellformed {
+    // each suit has same number of cards
+    all disj s1, s2: Suit | {
+        #{c: Card | c.suit = s1} = #{c: Card | c.suit = s2}
+    }
+
+    // card ranking is limited to 1 to 3
+    all c: Card | c.rank >= 1 and c.rank <= 3
+    all disj c1, c2: Card | not (c1.suit = c2.suit and c1.rank = c2.rank)
+
+    all c: Card | {
+        (c.suit = Heart or c.suit = Diamond) iff (c.color = Red)
+        (c.suit = Spade or c.suit = Clover) iff (c.color = Black)
+    }
 }
+
+run {
+    twelve_wellformed 
+} for exactly 12 Card, 0 GameState
+
+// pred wellformed_initial[gs: GameState] {
+//     some state: GameState | {
+//         all p: Pile | {
+        
+//         }
+//     }
+// }
 
 /*
 Card stack properties related predicates
@@ -103,53 +130,38 @@ pred isSameSuit[c1, c2: Card] {
     c1.suit = c2.suit
 }
 
-pred pileIsAscendingOrder { // A -> K
-    all c: Card | {
-        some c.next implies isLowerRankThan[c, c.next]
-        some c.prev implies isLowerRankThan[c.prev, c]
-    }
-}
-
 pred allSameSuit {
     all disj c1, c2: Card | {
         c1.suit = c2.suit
     }
 }
 
-// maybe we just need a legalPile pred and force forge to keep this pred
-// true with every movement instead
+// pred legalPile {
+//     all pile: Pile | {
+//         all c: Card | reachable[c, pile.stack, next] implies {
+//             some c.next implies isLowerRankThan[c, c.next]
+//             some c.prev implies isLowerRankThan[c.prev, c]
+//             c.faceDown = True
+//         }
+//         some pile.stack iff pile.empty = False
+//         // last card is faceDown = False
+//     }
+// }
 
-pred legalPile {
-    all pile: Pile | {
-        all c: Card | {
-            reachable[c, pile.stack, next]
-            some c.next implies isLowerRankThan[c, c.next]
-            some c.prev implies isLowerRankThan[c.prev, c]
-        }
-        one lastCard: Card | {
-            lastCard.faceDown = False
-            no lastCard.next
-        }
-    }
-}
+// pred legalEndPile {
+//     all endpile: EndPile | {
+//         allSameSuit
+//         all c: Card | reachable[c, endpile.stack, next] {
+//             some c.next implies isLowerRankThan[c.next, c]
+//             some c.prev implies isLowerRankThan[c, c.prev]
+//             c.faceDown = False
+//         }
+        
+//     }
+// }
 
-pred legalEndPile {
-    all endpile: EndPile | {
-        allSameSuit
-        all c: Card | {
-            reachable[c, endpile.stack, next]
-            some c.next implies isLowerRankThan[c.next, c]
-            some c.prev implies isLowerRankThan[c, c.prev]
-            c.faceDown = True
-        }
-    }
-}
-
-pred pileIsDescendingOrder { // K -> A
-    all c: Card | {
-        some c.next implies isLowerRankThan[c.next, c]
-        some c.prev implies isLowerRankThan[c, c.prev]
-    }
+pred completeEndPile { // for all rank ... 
+    
 }
 
 /*
@@ -165,6 +177,11 @@ Game properties predicates
 pred winnable {}
 pred stayWinning {} //?
 
-run {
-    wellformed
-} for exactly 1 GameState, 8 Card
+// run {
+//     wellformed
+// } for exactly 1 GameState, 8 Card
+
+// run {
+//     some pile: Pile | pile.empty = False
+//     legalPile
+// } for exactly 1 Pile, 8 Card

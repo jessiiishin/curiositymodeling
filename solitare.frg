@@ -1,4 +1,4 @@
-#lang forge/froglet
+#lang forge
 
 
 /*
@@ -193,8 +193,10 @@ pred allSameSuit {
 //     }
 // }
 
-pred completeEndPile { // for all rank ... 
-    
+pred completeEndPile[gs: GameState, ep: EndPile] { // for all rank ... 
+    gs.endPileComplete[ep] in True iff {
+        // some predicate to check end pile is complete
+    }
 }
 
 /*
@@ -206,6 +208,16 @@ pred validMove {}
 /*
 Game properties predicates
 */
+
+pred win[gs: GameState] {
+    all ep: EndPile | some gs.endPileComplete[ep] implies {
+        gs.endPileComplete[ep] in True
+    }
+
+    all pile: Pile | some gs.pileEmpty[pile] implies {
+        gs.pileEmpty[pile] in True
+    }
+}
 
 pred winnable {}
 pred stayWinning {} //?

@@ -60,8 +60,8 @@ sig GameState {
     columnTop: pfunc Pile -> Card,
     
     faceDown: pfunc Card -> Boolean,
-    nextCard: pfunc Card -> Card,
-    prevCard: pfunc Card -> Card,
+    // nextCard: pfunc Card -> Card,
+    // prevCard: pfunc Card -> Card,
 
     endPileComplete: pfunc EndPile -> Boolean,
     pileEmpty: pfunc Pile -> Boolean
@@ -71,13 +71,45 @@ sig GameState {
 sig Card {
     suit: one Suit,
     color: one Color,
-    rank: one Int
+    rank: one Int,
+    next: pfunc GameState -> Card,
+    prev: pfunc GameState -> Card
 }
 
 sig Pile {}
-sig EndPile {}
+sig EndPile {
+    endPileSuit: one Suit
+}
 sig Deck {}
 
+pred general_wellformed {
+    // each suit has same number of cards
+    all disj s1, s2: Suit | {
+        #{c: Card | c.suit = s1} = #{c: Card | c.suit = s2}
+    }
+
+    // color <-> suit relationship
+    all c: Card | {
+        (c.suit = Heart or c.suit = Diamond) iff (c.color = Red)
+        (c.suit = Spade or c.suit = Clover) iff (c.color = Black)
+    }
+
+    // # of endpile = # of suits ?
+    all s: Suit | {
+        one endPile: EndPile | endPile.endPileSuit = s
+    }
+
+    // linearity of stack
+    all st: GameState | {
+        all disj c1, c2: Card | {
+            reachable[c2, c1, next[st]] implies {
+                reachable[c1, c2, prev[st]]
+                not reachable[c1, c2, next[st]]
+                not reachable[c2, c1, prev[st]]
+            }
+        }
+    }
+}
 
 /*
 12 cards:
@@ -87,32 +119,33 @@ sig Deck {}
 -> 3 piles with 1, 2, 3 cards, 6 cards in deck
 */
 pred twelve_wellformed {
-    // each suit has same number of cards
-    all disj s1, s2: Suit | {
-        #{c: Card | c.suit = s1} = #{c: Card | c.suit = s2}
-    }
-
+    general_wellformed
     // card ranking is limited to 1 to 3
     all c: Card | c.rank >= 1 and c.rank <= 3
     all disj c1, c2: Card | not (c1.suit = c2.suit and c1.rank = c2.rank)
-
-    all c: Card | {
-        (c.suit = Heart or c.suit = Diamond) iff (c.color = Red)
-        (c.suit = Spade or c.suit = Clover) iff (c.color = Black)
-    }
 }
 
 run {
     twelve_wellformed 
 } for exactly 12 Card, 0 GameState
 
-// pred wellformed_initial[gs: GameState] {
-//     some state: GameState | {
-//         all p: Pile | {
-        
-//         }
-//     }
-// }
+pred wellformed_initial[gs: GameState] {
+    // all piles should be full
+    all p: Pile | {
+        gs.pileEmpty[p] = False
+    }
+
+    // endpiles are empty (not complete)
+    all endPile: Pile | { 
+        gs.endPileComplete[endPile] = False
+    }
+
+    // all c: Card | reachable[c, gs.nextCard]
+    
+    // all cards except for one (the one on the top) are facedown
+    // pile has increasing number of cards
+    // deck has rest of the cards not in pile
+}
 
 /*
 Card stack properties related predicates

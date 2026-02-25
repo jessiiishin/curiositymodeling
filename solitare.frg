@@ -65,8 +65,6 @@ sig GameState {
 
     endPileComplete: func EndPile -> Boolean,
     pileEmpty: func Pile -> Boolean,
-
-    // define next and prev in gamestate
     deckEmpty: func Deck -> Boolean
 }
 // if gamestate is what changes cards next and prev will not change

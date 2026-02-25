@@ -19,5 +19,8 @@ test suite for wellformed_initial {
 }
 
 test suite for twelve_init {
-    
+	// we cannot be init stage and be complete
+    not_finished: assert some gs: GameState | {
+		twelve_init and twelve_wellformed and gameComplete[gs]
+	} is unsat
 }

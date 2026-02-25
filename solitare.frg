@@ -56,12 +56,12 @@ sig GameState {
     nextState: lone GameState,
 
     deckTop: pfunc Deck -> Card,
-    discardTop: pfunc EndPile -> Card,
-    columnTop: pfunc Pile -> Card,
+    endPileTop: pfunc EndPile -> Card,
+    columnTop: pfunc Pile -> Card, // top of stack
     
     faceDown: pfunc Card -> Boolean,
-    // nextCard: pfunc Card -> Card,
-    // prevCard: pfunc Card -> Card,
+    cardBelow: pfunc Card -> Card,
+    cardAbove: pfunc Card -> Card,
 
     endPileComplete: pfunc EndPile -> Boolean,
     pileEmpty: pfunc Pile -> Boolean
@@ -71,9 +71,7 @@ sig GameState {
 sig Card {
     suit: one Suit,
     color: one Color,
-    rank: one Int,
-    next: pfunc GameState -> Card,
-    prev: pfunc GameState -> Card
+    rank: one Int
 }
 
 sig Pile {}
@@ -102,13 +100,38 @@ pred general_wellformed {
     // linearity of stack
     all st: GameState | {
         all disj c1, c2: Card | {
-            reachable[c2, c1, next[st]] implies {
-                reachable[c1, c2, prev[st]]
-                not reachable[c1, c2, next[st]]
-                not reachable[c2, c1, prev[st]]
+            reachable[c2, c1, st.cardBelow] implies {
+                reachable[c1, c2, st.cardAbove]
+                not reachable[c1, c2, st.cardBelow]
+                not reachable[c2, c1, st.cardAbove]
             }
         }
+
+        all c: Card, p: Pile, ep: EndPile, d: Deck | {
+            (reachable[c, st.columnTop[p], st.cardBelow] implies (
+                not reachable[c, st.deckTop[d], st.cardBelow] and
+                not reachable[c, st.endPileTop[ep], st.cardBelow]
+            ))
+
+            (reachable[c, st.deckTop[d], st.cardBelow] implies (
+                not reachable[c, st.columnTop[p], st.cardBelow] and
+                not reachable[c, st.endPileTop[ep], st.cardBelow]
+            ))
+
+            (reachable[c, st.endPileTop[ep], st.cardBelow] implies (
+                not reachable[c, st.columnTop[p], st.cardBelow] and
+                not reachable[c, st.deckTop[d], st.cardBelow]
+            ))
+        }
+
+        // if a pile or endPile or deck is not empty, then it must have at least one card that it can reach
+        
+        // there is only one deck
+        // one deck: Deck | #{cardInDeck: Card | reachable[cardInDeck]}
+        // and if card is in deck it's not in any of the columns or end pile and etc.
     }
+
+    
 }
 
 /*
@@ -123,6 +146,8 @@ pred twelve_wellformed {
     // card ranking is limited to 1 to 3
     all c: Card | c.rank >= 1 and c.rank <= 3
     all disj c1, c2: Card | not (c1.suit = c2.suit and c1.rank = c2.rank)
+
+    
 }
 
 run {
@@ -131,21 +156,32 @@ run {
 
 pred wellformed_initial[gs: GameState] {
     // all piles should be full
-    all p: Pile | {
+    all c: Card, p: Pile, d: Deck | {
         gs.pileEmpty[p] = False
+        all c: Card | {
+            gs.faceDown[c] = False iff gs.columnTop[p] = c
+            reachable[c, gs.columnTop[p], gs.cardBelow] implies gs.faceDown[c] = True
+
+            // not reachable[c, gs.column[p], gs.cardBelow] implies reachable[c, gs.deckTop]
+        }
+
+        // all cardInDeck: Card | 
     }
 
     // endpiles are empty (not complete)
-    all endPile: Pile | { 
-        gs.endPileComplete[endPile] = False
-    }
-
-    // all c: Card | reachable[c, gs.nextCard]
+    // all endPile: Pile | { 
+    //     gs.endPileComplete[endPile] = False
+    // }
     
     // all cards except for one (the one on the top) are facedown
     // pile has increasing number of cards
     // deck has rest of the cards not in pile
 }
+
+run {
+    twelve_wellformed
+    some st: GameState | wellformed_initial[st]
+} for exactly 12 Card, 1 GameState, 3 Pile, 4 EndPile, 1 Deck
 
 /*
 Card stack properties related predicates

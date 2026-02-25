@@ -1,15 +1,23 @@
-#lang forge/froglet
+#lang forge
 
 open "solitare.frg"
 
-test suite for wellformed {
+pred cyclicStack {
+    
+}
+
+test suite for general_wellformed {
 
 }
 
-test suite for pileIsAscendingOrder {
-
+test suite for twelve_wellformed {
+    
 }
 
-test suite for pileIsDescendingOrder {
+test suite for wellformed_initial {
+    
+}
+
+test suite for twelve_init {
     
 }

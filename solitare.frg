@@ -75,8 +75,6 @@ sig Card {
     suit: one Suit,
     color: one Color,
     rank: one Int
-    // next: lone Card,
-    // prev: lone Card
 }
 
 sig Pile {}
@@ -196,11 +194,11 @@ pred twelve_init {
     }
 }
 
-run {
+twelve_cards: run {
     twelve_wellformed 
 } for exactly 12 Card, 0 GameState
 
-run {
+twelve_cards_wellformed_deal: run {
     twelve_wellformed
     twelve_init
 } for exactly 12 Card, 1 GameState, 3 Pile, 4 EndPile, 1 Deck
@@ -229,30 +227,6 @@ pred allSameSuit {
     }
 }
 
-// pred legalPile {
-//     all pile: Pile | {
-//         all c: Card | reachable[c, pile.stack, next] implies {
-//             some c.next implies isLowerRankThan[c, c.next]
-//             some c.prev implies isLowerRankThan[c.prev, c]
-//             c.faceDown = True
-//         }
-//         some pile.stack iff pile.empty = False
-//         // last card is faceDown = False
-//     }
-// }
-
-// pred legalEndPile {
-//     all endpile: EndPile | {
-//         allSameSuit
-//         all c: Card | reachable[c, endpile.stack, next] {
-//             some c.next implies isLowerRankThan[c.next, c]
-//             some c.prev implies isLowerRankThan[c, c.prev]
-//             c.faceDown = False
-//         }
-        
-//     }
-// }
-
 pred completedEndPile[gs: GameState, ep: EndPile] {
     // this top pile exists and has rank 3
     some gs.discardTop[ep]
@@ -279,7 +253,9 @@ pred completedEndPile[gs: GameState, ep: EndPile] {
 Player movement predicates
 */
 
-pred validMove {}
+pred validMove {
+
+}
 
 /*
 Game properties predicates

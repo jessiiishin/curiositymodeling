@@ -1,9 +1,13 @@
 constraints:
+  - orientation: {selector: '{ ep: EndPile, c: Card | some gs: GameState | gs.endPileTop[ep] = c }', directions: [directlyBelow]}
   - orientation: {selector: '{ p: Pile, c: Card | some gs: GameState | gs.columnTop[p] = c }', directions: [directlyBelow]}
   - orientation: {selector: '{ d: Deck, c: Card | some gs: GameState | gs.deckTop[d] = c }', directions: [directlyBelow]}
   - orientation: {selector: '{ c1, c2: Card | some gs: GameState | gs.cardBelow[c1] = c2 }', directions: [directlyBelow]}
 
 directives:
+  - hideAtom: {selector: Color}
+  - hideAtom: {selector: Suit}
+  - hideAtom: {selector: Boolean}
   - attribute: {field: endPileComplete}
   - attribute: {field: pileEmpty}
   - attribute: {field: deckEmpty}

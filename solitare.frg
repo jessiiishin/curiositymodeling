@@ -95,6 +95,9 @@ pred general_wellformed {
         (c.suit = Spade or c.suit = Clover) iff (c.color = Black)
     }
 
+    // no 2 cards are the same
+    all disj c1, c2: Card | not (c1.suit = c2.suit and c1.rank = c2.rank)
+
     // # of endpile = # of suits ?
     all s: Suit | {
         one endPile: EndPile | endPile.endPileSuit = s
@@ -105,6 +108,15 @@ pred general_wellformed {
         all c1: Card {
             not st.cardBelow[c1] = c1
             not reachable[c1, c1, st.cardBelow]
+        }
+
+        // no face up card below a face down card
+        all p: Pile | {
+            all c: Card | {
+                (inPile[st, p, c] and some st.cardBelow[c] and inPile[st, p, st.cardBelow[c]]) implies {
+                    st.faceDown[c] = True implies st.faceDown[st.cardBelow[c]] = True
+                }
+            }
         }
 
         // prevent dags
@@ -119,21 +131,37 @@ pred general_wellformed {
         all p: Pile, ep: EndPile | {
             st.pileEmpty[p] = True iff st.columnTop[p] = none
         }
+
+        all d: Deck | {
+            st.deckEmpty[d] = True iff st.deckTop[d] = none
+        }
         // if a pile or endPile or deck is not empty, then it must have at least one card that it can reach
     }
 
 }
 
+pred inPile[gs: GameState, p: Pile, c: Card] {
+    c = gs.columnTop[p] or reachable[c, gs.columnTop[p], gs.cardBelow]
+}
+
+pred inEndPile[gs: GameState, ep: EndPile, c: Card] {
+    c = gs.endPileTop[ep] or reachable[c, gs.endPileTop[ep], gs.cardBelow]
+}
+
+pred inDeck[gs: GameState, d: Deck, c: Card] { 
+    c = gs.deckTop[d] or reachable[c, gs.deckTop[d], gs.cardBelow]
+}
+
 pred exclusiveDecksAndPiles[st: GameState] {
     all c: Card | {
-        let inPile = (some p: Pile | {st.columnTop[p] = c or reachable[c, st.columnTop[p], st.cardBelow]}) |
-        let inEndPile = (some ep: EndPile | {st.endPileTop[ep] = c or reachable[c, st.endPileTop[ep], st.cardBelow]}) |
-        let inDeck = (some d: Deck | {st.deckTop[d] = c or reachable[c, st.deckTop[d], st.cardBelow]}) | {
-            inPile or inEndPile or inDeck
+        let someInPile = (some p: Pile | inPile[st, p, c]) |
+        let someInEndPile = (some ep: EndPile | inEndPile[st, ep, c]) |
+        let someInDeck = (some d: Deck | inDeck[st, d, c]) | {
+            someInPile or someInEndPile or someInDeck
 
-            (inPile implies not inEndPile and not inDeck)
-            (inEndPile implies not inPile and not inDeck)
-            (inDeck implies not inPile and not inEndPile)
+            (someInPile implies not someInEndPile and not someInDeck)
+            (someInEndPile implies not someInPile and not someInDeck)
+            (someInDeck implies not someInPile and not someInEndPile)
         }
     }
 }
@@ -149,7 +177,6 @@ pred twelve_wellformed {
     general_wellformed
     // card ranking is limited to 1 to 3
     all c: Card | c.rank >= 1 and c.rank <= 3
-    all disj c1, c2: Card | not (c1.suit = c2.suit and c1.rank = c2.rank) 
 }
 
 pred wellformed_initial[gs: GameState] {
@@ -214,44 +241,21 @@ twelve_cards_wellformed_deal: run {
 } for exactly 12 Card, exactly 1 GameState, exactly 3 Pile, exactly 4 EndPile, exactly 1 Deck
 
 
-
-/*
-Card stack properties related predicates
-*/
-
-pred isLowerRankThan[c1, c2: Card] {
-    c1.rank < c2.rank
-}
-
-pred isSameColor[c1, c2: Card] {
-    c1.color = c2.color
-}
-
-pred isSameSuit[c1, c2: Card] {
-    c1.suit = c2.suit
-}
-
-pred allSameSuit {
-    all disj c1, c2: Card | {
-        c1.suit = c2.suit
-    }
-}
-
-pred inEndPile[gs: GameState, ep: EndPile, c: Card] {
-    c = gs.endPileTop[ep] or reachable[c, gs.endPileTop[ep], gs.cardBelow]
-}
-
-
 pred validEndPile[gs: GameState, ep: EndPile] {
     // every card in the end pile must match the pile's suit
     all c: Card | inEndPile[gs, ep, c] implies {
         c.suit = ep.endPileSuit
     }
 
+    // for sake of argument, let them all be faceup
+    all c: Card | inEndPile[gs, ep, c] implies {
+        gs.faceDown[c] = False
+    }
+
     // cards in asc. order
     all c: Card | inEndPile[gs, ep, c] implies {
         some gs.cardBelow[c] implies {
-            gs.cardBelow[c].rank = c.rank - 1
+            gs.cardBelow[c].rank = subtract[c.rank, 1]
         }
     }
 
@@ -297,12 +301,12 @@ pred stayWinning {} //?
 valid_ep: run {
     twelve_wellformed
     some gs: GameState | all ep: EndPile | validEndPile[gs, ep]
-} for exactly 1 GameState, exactly 12 Card, 4 EndPile
+} for exactly 12 Card, exactly 1 GameState, exactly 3 Pile, exactly 4 EndPile, exactly 1 Deck
 
 game_complete: run {
     twelve_wellformed
     some gs: GameState | gameComplete[gs]
-} for exactly 1 GameState, exactly 12 Card, 3 Pile, 4 EndPile, 1 Deck
+} for exactly 1 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile, exactly 1 Deck
 
 // run {
 //     wellformed

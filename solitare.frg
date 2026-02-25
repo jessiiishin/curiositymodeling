@@ -64,16 +64,20 @@ sig GameState {
     // prevCard: pfunc Card -> Card,
 
     endPileComplete: pfunc EndPile -> Boolean,
-    pileEmpty: pfunc Pile -> Boolean
+    pileEmpty: pfunc Pile -> Boolean,
+
+    // define next and prev in gamestate
+    nextCard: pfunc Card -> Card,
+    prevCard: pfunc Card -> Card
 }
 // if gamestate is what changes cards next and prev will not change
 
 sig Card {
     suit: one Suit,
     color: one Color,
-    rank: one Int,
-    next: pfunc GameState -> Card,
-    prev: pfunc GameState -> Card
+    rank: one Int
+    // next: lone Card,
+    // prev: lone Card
 }
 
 sig Pile {}
@@ -102,10 +106,10 @@ pred general_wellformed {
     // linearity of stack
     all st: GameState | {
         all disj c1, c2: Card | {
-            reachable[c2, c1, next[st]] implies {
-                reachable[c1, c2, prev[st]]
-                not reachable[c1, c2, next[st]]
-                not reachable[c2, c1, prev[st]]
+            reachable[c2, c1, st.nextCard] implies {
+                reachable[c1, c2, st.prevCard]
+                not reachable[c1, c2, st.nextCard]
+                not reachable[c2, c1, st.prevCard]
             }
         }
     }
@@ -125,7 +129,7 @@ pred twelve_wellformed {
     all disj c1, c2: Card | not (c1.suit = c2.suit and c1.rank = c2.rank)
 }
 
-run {
+twelve_wf: run {
     twelve_wellformed 
 } for exactly 12 Card, 0 GameState
 
@@ -193,11 +197,27 @@ pred allSameSuit {
 //     }
 // }
 
-pred completeEndPile[gs: GameState, ep: EndPile] { // for all rank ... 
-    gs.endPileComplete[ep] in True iff {
-        // some predicate to check end pile is complete
+pred completedEndPile[gs: GameState, ep: EndPile] {
+    // this top pile exists and has rank 3
+    some gs.discardTop[ep]
+    gs.discardTop[ep].rank = 3
+
+    // all cards in end pile share a suit
+    all c: Card | {
+        reachable[c, gs.discardTop[ep], gs.prevCard]
+    } implies c.suit = ep.endPileSuit
+
+    // all cards ascends
+    all c: Card | {
+        some gs.nextCard[c] implies {
+            gs.nextCard[c].rank = c.rank + 1
+        }
     }
+
+    // exactly 3 cards in the pile
+    #{ c: Card | reachable[c, gs.discardTop[ep], gs.prevCard] } = 3
 }
+
 
 /*
 Player movement predicates
@@ -209,18 +229,27 @@ pred validMove {}
 Game properties predicates
 */
 
-pred win[gs: GameState] {
-    all ep: EndPile | some gs.endPileComplete[ep] implies {
-        gs.endPileComplete[ep] in True
-    }
+pred gameComplete[gs: GameState] {
+    all ep: EndPile | completedEndPile[gs, ep]
 
     all pile: Pile | some gs.pileEmpty[pile] implies {
-        gs.pileEmpty[pile] in True
+        gs.pileEmpty[pile] = True
     }
 }
 
 pred winnable {}
 pred stayWinning {} //?
+
+complete: run {
+    twelve_wellformed
+    some gs: GameState | gameComplete[gs]
+    // some gs: GameState | {
+    //     all disj c1, c2: Card | {
+    //         gs.nextCard[c1] = c2 iff c2.prev = c1
+    //         gs.nextCard[c1] = c2 iff c1.next = c2
+    //     }
+    // }
+} for exactly 1 GameState, 12 Card
 
 // run {
 //     wellformed

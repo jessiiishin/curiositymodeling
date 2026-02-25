@@ -1,0 +1,16 @@
+constraints:
+  - orientation: {selector: '{ p: Pile, c: Card | some gs: GameState | gs.columnTop[p] = c }', directions: [directlyBelow]}
+  - orientation: {selector: '{ d: Deck, c: Card | some gs: GameState | gs.deckTop[d] = c }', directions: [directlyBelow]}
+  - orientation: {selector: '{ c1, c2: Card | some gs: GameState | gs.cardBelow[c1] = c2 }', directions: [directlyBelow]}
+
+directives:
+  - attribute: {field: endPileComplete}
+  - attribute: {field: pileEmpty}
+  - attribute: {field: deckEmpty}
+  - attribute: {field: faceDown}
+  - attribute: {field: endPileSuit}
+  - attribute: {field: color}
+  - attribute: {field: suit}
+  - attribute: {field: rank}
+  - projection: {sig: GameState}
+  - flag: hideDisconnectedBuiltIns

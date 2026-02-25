@@ -1,6 +1,0 @@
-directives:
-  - attribute: {field: endPileSuit}
-  - flag: hideDisconnectedBuiltIns
-  - attribute: {field: color}
-  - attribute: {field: suit}
-  - attribute: {field: rank}

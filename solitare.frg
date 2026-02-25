@@ -1,5 +1,6 @@
 #lang forge
 
+option run_sterling "layout.cnd"
 
 /*
 Things to possibly implement
@@ -59,15 +60,14 @@ sig GameState {
     endPileTop: pfunc EndPile -> Card,
     columnTop: pfunc Pile -> Card, // top of stack
     
-    faceDown: pfunc Card -> Boolean,
+    faceDown: func Card -> Boolean,
     cardBelow: pfunc Card -> Card,
-    cardAbove: pfunc Card -> Card,
 
-    endPileComplete: pfunc EndPile -> Boolean,
-    pileEmpty: pfunc Pile -> Boolean,
+    endPileComplete: func EndPile -> Boolean,
+    pileEmpty: func Pile -> Boolean,
 
     // define next and prev in gamestate
-    deckEmpty: pfunc Deck -> Boolean
+    deckEmpty: func Deck -> Boolean
 }
 // if gamestate is what changes cards next and prev will not change
 
@@ -102,11 +102,15 @@ pred general_wellformed {
 
     // linearity of stack
     all st: GameState | {
+        all c1: Card {
+            not st.cardBelow[c1] = c1
+            not reachable[c1, c1, st.cardBelow]
+        }
+
+        // prevent dags
         all disj c1, c2: Card | {
-            reachable[c2, c1, st.cardBelow] implies {
-                reachable[c1, c2, st.cardAbove]
-                not reachable[c1, c2, st.cardBelow]
-                not reachable[c2, c1, st.cardAbove]
+            some st.cardBelow[c1] and some st.cardBelow[c2] implies {
+                st.cardBelow[c1] != st.cardBelow[c2]
             }
         }
 
@@ -155,13 +159,19 @@ pred wellformed_initial[gs: GameState] {
         gs.pileEmpty[p] = False
         some gs.columnTop[p]
         gs.faceDown[gs.columnTop[p]] = False
+
+        all c: Card | {
+            (reachable[c, gs.columnTop[p], gs.cardBelow] and c != gs.columnTop[p]) implies {
+                gs.faceDown[c] = True
+            }
+        }
     }
 
     // deck should not be empty and all cards are face down
-    all d: Deck, c: Card | {
+    all d: Deck | {
         gs.deckEmpty[d] = False
         some gs.deckTop[d]
-        (gs.deckTop[d] = c or reachable[c, gs.deckTop[d], gs.cardBelow]) implies {
+        all c: Card | (gs.deckTop[d] = c or reachable[c, gs.deckTop[d], gs.cardBelow]) implies {
             gs.faceDown[c] = True
         }
     }
@@ -201,7 +211,7 @@ twelve_cards: run {
 twelve_cards_wellformed_deal: run {
     twelve_wellformed
     twelve_init
-} for exactly 12 Card, 1 GameState, 3 Pile, 4 EndPile, 1 Deck
+} for exactly 12 Card, exactly 1 GameState, exactly 3 Pile, exactly 4 EndPile, exactly 1 Deck
 
 
 
@@ -227,25 +237,39 @@ pred allSameSuit {
     }
 }
 
-pred completedEndPile[gs: GameState, ep: EndPile] {
-    // this top pile exists and has rank 3
-    some gs.discardTop[ep]
-    gs.discardTop[ep].rank = 3
+pred inEndPile[gs: GameState, ep: EndPile, c: Card] {
+    c = gs.endPileTop[ep] or reachable[c, gs.endPileTop[ep], gs.cardBelow]
+}
 
-    // all cards in end pile share a suit
-    all c: Card | {
-        reachable[c, gs.discardTop[ep], gs.cardBelow]
-    } implies c.suit = ep.endPileSuit
 
-    // all cards ascends
-    all c: Card | {
-        some gs.cardAbove[c] implies {
-            gs.cardAbove[c].rank = c.rank + 1
+pred validEndPile[gs: GameState, ep: EndPile] {
+    // every card in the end pile must match the pile's suit
+    all c: Card | inEndPile[gs, ep, c] implies {
+        c.suit = ep.endPileSuit
+    }
+
+    // cards in asc. order
+    all c: Card | inEndPile[gs, ep, c] implies {
+        some gs.cardBelow[c] implies {
+            gs.cardBelow[c].rank = c.rank - 1
         }
     }
 
-    // exactly 3 cards in the pile
-    #{ c: Card | reachable[c, gs.discardTop[ep], gs.cardBelow] } = 3
+    // bottom card must be rank 1
+    some gs.endPileTop[ep] implies {
+        some bottom: Card | {
+            inEndPile[gs, ep, bottom]
+            no gs.cardBelow[bottom]
+            bottom.rank = 1
+        }
+    }
+
+}
+
+pred completedEndPile[gs: GameState, ep: EndPile] {
+    some gs.endPileTop[ep]
+    gs.endPileTop[ep].rank = 3 
+    validEndPile[gs, ep]
 }
 
 
@@ -263,25 +287,22 @@ Game properties predicates
 
 pred gameComplete[gs: GameState] {
     all ep: EndPile | completedEndPile[gs, ep]
-
-    all pile: Pile | some gs.pileEmpty[pile] implies {
-        gs.pileEmpty[pile] = True
-    }
+    all p: Pile | gs.pileEmpty[p] = True
+    all d: Deck | gs.deckEmpty[d] = True
 }
 
 pred winnable {}
 pred stayWinning {} //?
 
-complete: run {
+valid_ep: run {
+    twelve_wellformed
+    some gs: GameState | all ep: EndPile | validEndPile[gs, ep]
+} for exactly 1 GameState, exactly 12 Card, 4 EndPile
+
+game_complete: run {
     twelve_wellformed
     some gs: GameState | gameComplete[gs]
-    // some gs: GameState | {
-    //     all disj c1, c2: Card | {
-    //         gs.nextCard[c1] = c2 iff c2.prev = c1
-    //         gs.nextCard[c1] = c2 iff c1.next = c2
-    //     }
-    // }
-} for exactly 1 GameState, 12 Card
+} for exactly 1 GameState, exactly 12 Card, 3 Pile, 4 EndPile, 1 Deck
 
 // run {
 //     wellformed

@@ -114,37 +114,21 @@ pred general_wellformed {
             st.pileEmpty[p] = True iff st.columnTop[p] = none
         }
         // if a pile or endPile or deck is not empty, then it must have at least one card that it can reach
-
-        // there is only one deck
-        // one deck: Deck | #{cardInDeck: Card | reachable[cardInDeck]}
-        // and if card is in deck it's not in any of the columns or end pile and etc.
     }
 
-    
 }
 
 pred exclusiveDecksAndPiles[st: GameState] {
-    all c: Card, p: Pile, ep: EndPile, d: Deck | {
-        // always in some pile / deck / endpile
-        (reachable[c, st.columnTop[p], st.cardBelow] or
-        reachable[c, st.deckTop[d], st.cardBelow] or
-        reachable[c, st.endPileTop[ep], st.cardBelow])
+    all c: Card | {
+        let inPile = (some p: Pile | {st.columnTop[p] = c or reachable[c, st.columnTop[p], st.cardBelow]}) |
+        let inEndPile = (some ep: EndPile | {st.endPileTop[ep] = c or reachable[c, st.endPileTop[ep], st.cardBelow]}) |
+        let inDeck = (some d: Deck | {st.deckTop[d] = c or reachable[c, st.deckTop[d], st.cardBelow]}) | {
+            inPile or inEndPile or inDeck
 
-        // exclusive
-        (reachable[c, st.columnTop[p], st.cardBelow] implies (
-            not reachable[c, st.deckTop[d], st.cardBelow] and
-            not reachable[c, st.endPileTop[ep], st.cardBelow]
-        ))
-
-        (reachable[c, st.deckTop[d], st.cardBelow] implies (
-            not reachable[c, st.columnTop[p], st.cardBelow] and
-            not reachable[c, st.endPileTop[ep], st.cardBelow]
-        ))
-
-        (reachable[c, st.endPileTop[ep], st.cardBelow] implies (
-            not reachable[c, st.columnTop[p], st.cardBelow] and
-            not reachable[c, st.deckTop[d], st.cardBelow]
-        ))
+            (inPile implies not inEndPile and not inDeck)
+            (inEndPile implies not inPile and not inDeck)
+            (inDeck implies not inPile and not inEndPile)
+        }
     }
 }
 
@@ -167,12 +151,14 @@ pred wellformed_initial[gs: GameState] {
     // top of stack has face up, everything else has face down
     all p: Pile | {
         gs.pileEmpty[p] = False
-        some gs.columnTop[p] implies gs.faceDown[gs.columnTop[p]] = False
+        some gs.columnTop[p]
+        gs.faceDown[gs.columnTop[p]] = False
     }
 
     // deck should not be empty and all cards are face down
     all d: Deck, c: Card | {
         gs.deckEmpty[d] = False
+        some gs.deckTop[d]
         (gs.deckTop[d] = c or reachable[c, gs.deckTop[d], gs.cardBelow]) implies {
             gs.faceDown[c] = True
         }
@@ -181,28 +167,28 @@ pred wellformed_initial[gs: GameState] {
     // endpiles are empty & not complete
     all endPile: EndPile | { 
         gs.endPileComplete[endPile] = False
-        no c: Card | reachable[c, gs.endPileTop[endPile], gs.cardBelow]
+        no gs.endPileTop[endPile]
     }
 }
 
 pred twelve_init {
     some gs: GameState | {
-        // some disj p1, p2, p3: Pile | {
-        //     some disj c1, c2, c3: Card | {
-        //         gs.columnTop[p1] = c1
-        //         gs.columnTop[p2] = c2
-        //         gs.columnTop[p3] = c3
-        //     }
+        some disj p1, p2, p3: Pile | {
+            no gs.cardBelow[gs.columnTop[p1]]
 
-        //     #{c: Card | reachable[c, gs.columnTop[p1], gs.cardBelow]} = 0
-        //     #{c: Card | reachable[c, gs.columnTop[p2], gs.cardBelow]} = 1
-        //     #{c: Card | reachable[c, gs.columnTop[p3], gs.cardBelow]} = 2
-        // }
+            (some gs.cardBelow[gs.columnTop[p2]] and 
+                no gs.cardBelow[gs.cardBelow[gs.columnTop[p2]]])
+
+            (some gs.cardBelow[gs.columnTop[p3]] and 
+                some gs.cardBelow[gs.cardBelow[gs.columnTop[p3]]] and 
+                no gs.cardBelow[gs.cardBelow[gs.cardBelow[gs.columnTop[p3]]]])
+        }
 
         some d: Deck | {
-            some c: Card | gs.deckTop[d] = c 
             #{c: Card | reachable[c, gs.deckTop[d], gs.cardBelow]} = 5
         }
+
+        wellformed_initial[gs]
     }
 }
 
@@ -213,7 +199,6 @@ run {
 run {
     twelve_wellformed
     twelve_init
-    some st: GameState | wellformed_initial[st]
 } for exactly 12 Card, 1 GameState, 3 Pile, 4 EndPile, 1 Deck
 
 

@@ -65,6 +65,8 @@ sig GameState {
 
     endPileComplete: pfunc EndPile -> Boolean,
     pileEmpty: pfunc Pile -> Boolean,
+
+    // define next and prev in gamestate
     deckEmpty: pfunc Deck -> Boolean
 }
 // if gamestate is what changes cards next and prev will not change
@@ -73,6 +75,8 @@ sig Card {
     suit: one Suit,
     color: one Color,
     rank: one Int
+    // next: lone Card,
+    // prev: lone Card
 }
 
 sig Pile {}
@@ -249,11 +253,27 @@ pred allSameSuit {
 //     }
 // }
 
-pred completeEndPile[gs: GameState, ep: EndPile] { // for all rank ... 
-    gs.endPileComplete[ep] in True iff {
-        // some predicate to check end pile is complete
+pred completedEndPile[gs: GameState, ep: EndPile] {
+    // this top pile exists and has rank 3
+    some gs.discardTop[ep]
+    gs.discardTop[ep].rank = 3
+
+    // all cards in end pile share a suit
+    all c: Card | {
+        reachable[c, gs.discardTop[ep], gs.cardBelow]
+    } implies c.suit = ep.endPileSuit
+
+    // all cards ascends
+    all c: Card | {
+        some gs.cardAbove[c] implies {
+            gs.cardAbove[c].rank = c.rank + 1
+        }
     }
+
+    // exactly 3 cards in the pile
+    #{ c: Card | reachable[c, gs.discardTop[ep], gs.cardBelow] } = 3
 }
+
 
 /*
 Player movement predicates
@@ -265,18 +285,27 @@ pred validMove {}
 Game properties predicates
 */
 
-pred win[gs: GameState] {
-    all ep: EndPile | some gs.endPileComplete[ep] implies {
-        gs.endPileComplete[ep] in True
-    }
+pred gameComplete[gs: GameState] {
+    all ep: EndPile | completedEndPile[gs, ep]
 
     all pile: Pile | some gs.pileEmpty[pile] implies {
-        gs.pileEmpty[pile] in True
+        gs.pileEmpty[pile] = True
     }
 }
 
 pred winnable {}
 pred stayWinning {} //?
+
+complete: run {
+    twelve_wellformed
+    some gs: GameState | gameComplete[gs]
+    // some gs: GameState | {
+    //     all disj c1, c2: Card | {
+    //         gs.nextCard[c1] = c2 iff c2.prev = c1
+    //         gs.nextCard[c1] = c2 iff c1.next = c2
+    //     }
+    // }
+} for exactly 1 GameState, 12 Card
 
 // run {
 //     wellformed

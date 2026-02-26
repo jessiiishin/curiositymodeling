@@ -74,8 +74,14 @@ Predicates:
     - It's a valid EndPile with Topmost card's rank being 3. 
 
 - validMove:
+    - Defines what a valid move is. Player can take one of the following moves:
+        - moveToPile
 
-- moveToPile:
+- moveToPileGeneralGuard
+- movePileToPileGeneralFrame
+- movePileToEmptyPile:
+- movePileToPile:
+- moveEndPileToPile:
 
 
 - drawCard

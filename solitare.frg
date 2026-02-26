@@ -50,11 +50,11 @@ fun cardInEndPile[c: Card, gs: GameState, ep: EndPile]: Boolean {
 }
 
 fun cardInDeck[c: Card, gs: GameState, d: Deck]: Boolean {
-    (c = gs.deckTop[d]) or (c in gs.deckTop[d].^(gs.cardBelow))
+    (c = gs.deckTop) or (c in gs.deckTop.^(gs.cardBelow))
 }
 
 fun cardInDiscard[c: Card, gs: GameState, dis: Discard]: Boolean {
-    (c = gs.discardTop[dis]) or (c in gs.discardTop[dis].^(gs.cardBelow))
+    (c = gs.discardTop) or (c in gs.discardTop.^(gs.cardBelow))
 }
 
 
@@ -217,16 +217,6 @@ pred twelve_init {
     }
 }
 
-twelve_cards: run {
-    twelve_wellformed 
-} for exactly 12 Card, 1 GameState, exactly 4 EndPile
-
-twelve_cards_wellformed_deal: run {
-    twelve_wellformed
-    twelve_init
-} for exactly 12 Card, exactly 1 GameState, exactly 3 Pile, exactly 4 EndPile, exactly 1 Deck
-
-
 pred validEndPile[gs: GameState, ep: EndPile] {
     // every card in the end pile must match the pile's suit
     all c: Card | inEndPile[gs, ep, c] implies {
@@ -266,20 +256,6 @@ pred completedEndPile[gs: GameState, ep: EndPile] {
 Player movement predicates
 */
 
-pred validMove[pre: GameState, post: GameState] {
-    -- GUARD
-    // wellformed
-    // not winning, game is not finished
-    not gameComplete[pre]
-    
-    -- ACTION
-    moveTableauCard[pre, post] or
-    drawCard[pre, post] or 
-    moveCardToFoundation[pre, post]
-
-    -- FRAME CONDITION
-}
-
 pred moveToPileGeneralGuard[targetCard, destCard: Card, destP: Pile, pre: GameState] {
     -- GUARD
     // targetCard must be different from destCard
@@ -302,10 +278,10 @@ pred moveToPileGeneralGuard[targetCard, destCard: Card, destP: Pile, pre: GameSt
 pred movePileToPileGeneralFrame[targetCard: Card, srcP, destP: Pile, pre, post: GameState] {
     -- FRAME CONDITION
     // deck, endpiles, other piles, and discard stay same
-    all deck: Deck | pre.deckTop[deck] = post.deckTop[deck]
     all ep: EndPile | pre.endPileTop[ep] = post.endPileTop[ep]
-    all p: Pile | p != srcP and p != destP | pre.columnTop[p] = post.columnTop[p]
-    all dis: Discard | pre.discardTop[dis] = post.discardTop[dis]
+    all p: Pile | (p != srcP and p != destP) implies pre.columnTop[p] = post.columnTop[p]
+    pre.deckTop = post.deckTop
+    pre.discardTop = post.discardTop
 
     // all other cards remain in same facedown condition
     all c: Card | c != pre.cardBelow[targetCard] implies pre.faceDown[c] = post.faceDown[c]
@@ -431,7 +407,7 @@ pred movePileToEndPile[pre, post: GameState] {
 }
 
 pred moveDiscardToEndPile {
-
+    
 }
 
 /*
@@ -466,6 +442,40 @@ pred winnable {
         reachable[gs, init, next]
     }
 }
+
+pred validMove[pre: GameState, post: GameState] {
+    -- GUARD
+    // wellformed
+    // not winning, game is not finished
+    twelve_wellformed
+    not gameComplete[pre]
+    
+    -- ACTION
+   
+
+    -- FRAME CONDITION
+}
+
+one_move_pile_to_pile: run {
+    twelve_wellformed
+
+    some disj pre, post: GameState | {
+        not gameComplete[pre]
+        some c1, c2: Card, p1, p2: Pile | {
+            movePileToPile[c1, c2, p1, p2, pre, post]
+        }
+    }
+} for exactly 12 Card, 2 GameState, exactly 3 Pile
+
+twelve_cards: run {
+    twelve_wellformed 
+} for exactly 12 Card, 1 GameState, exactly 4 EndPile
+
+twelve_cards_wellformed_deal: run {
+    twelve_wellformed
+    twelve_init
+} for exactly 12 Card, exactly 1 GameState, exactly 3 Pile, exactly 4 EndPile, exactly 1 Deck
+
 
 valid_ep: run {
     twelve_wellformed

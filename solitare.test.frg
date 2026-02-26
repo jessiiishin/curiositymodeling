@@ -15,6 +15,12 @@ pred cyclicCards {
     }
 }
 
+pred unevenDistributionOfCardsInSuit {
+    some disj s1, s2: Suit | {
+        #{c: Card | c.suit = s1} != #{c: Card | c.suit = s2}
+    }
+}
+
 pred illegalCards {
     // suit and color don't match
     some c: Card | {
@@ -124,6 +130,19 @@ pred multCardsInPileFaceUp {
 */
 
 test suite for general_wellformed {
+    GW_noCycles: assert {cyclicCards and general_wellformed} is unsat
+    GW_unevenSuite: assert {unevenDistributionOfCardsInSuit and general_wellformed} is unsat
+    GW_illegalCards: assert {illegalCards and general_wellformed} is unsat
+    GW_notExclusiveDeckDiscard: assert {cardInDeckAndDiscard and general_wellformed} is unsat
+    GW_notExclusiveEndPile: assert {cardInMultipleEndPiles and general_wellformed} is unsat
+    GW_notExclusive: assert {cardInMultiplePlaces and general_wellformed} is unsat
+
+    GW_sameCards: assert {some disj c1, c2: Card | c1.suit = c2.suit and c1.rank = c2 rank and general_wellformed} is unsat
+    GW_sameSuit: assert {some disj c1, c2: Card | c1.suit = c2.suit} is sat
+    GW_sameRank: assert {some disj c1, c2: Card | c1.rank = c2.rank} is sat
+    
+    // same cards
+    // linearity
     // 
 }
 
@@ -139,6 +158,9 @@ test suite for twelve_init {
 	// we cannot be init stage and be complete
 	assert some gs: GameState | gameComplete[gs] is inconsistent with twelve_init
 }
+
+// test that endpiles always include all the ranks
+
 
 /* 
 --------------------------------------------------

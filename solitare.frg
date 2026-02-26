@@ -224,7 +224,7 @@ pred validEndPile[gs: GameState, ep: EndPile] {
         gs.faceDown[c] = False
     }
 
-    // cards in asc. order
+    // cards in desc. order
     all c: Card | inEndPile[gs, ep, c] implies {
         some gs.cardBelow[c] implies {
             gs.cardBelow[c].rank = subtract[c.rank, 1]
@@ -257,6 +257,7 @@ pred validMove[pre: GameState, post: GameState] {
     -- GUARD
     // wellformed
     // not winning, game is not finished
+    not gameComplete[pre]
     
     -- ACTION
     moveTableauCard[pre, post] or
@@ -266,25 +267,35 @@ pred validMove[pre: GameState, post: GameState] {
     -- FRAME CONDITION
 }
 
-pred moveTableauCard[pre, post: GameState] {
+pred moveToPile[destP: Pile, pre, post: GameState] {
     -- GUARD
-    some targetCard, destCard: Card | {
+    // targetCard must be different from destCard
+    some disj targetCard, destCard: Card | {
+        // both are face up
         pre.faceDown[targetCard] = False
         pre.faceDown[destCard] = False
-    }
-    // targetCard is faceDown = False
-    // destCard is faceDown = False
-    // targetCard is either top of an EndPile or on top of Deck/Discard or on top of a pile
-    // destCard must be the top card in one of a Pile
-    // targetCard must be lower in rank than destCard
-    // targetCard must be different color than destCard
-    // targetCard must be different from destCard
 
-    -- ACTION
-    // targetCard cardBelow = destCard
-    // post.columnTop[pile] = targetCard
+        // targetCard is either top of an EndPile or on top of Deck/Discard or on top of a pile or top of pile 
+        ((some p: Pile | pre.columnTop[p] = targetCard and p != destP) or
+        (some ep: EndPile | pre.endPileTop[ep] = targetCard) or
+        (some dis: Discard | pre.discardTop[ep] = targetCard))
+
+        // targetCard must be lower in rank than destCard
+        targetCard.rank < destCard.rank
+
+        // targetCard must be different color than destCard
+        targetCard.color != destCard.color
+
+        // destCard must be the top card in one of a Pile
+        pre.columnTop[destP] = destCard
+
+        -- ACTION
+        post.cardBelow[targetCard] = destCard
+        post.columnTop[destP] = targetCard
+    }
 
     -- FRAME CONDITION
+    all c: Card
     // deck stays same
     // end piles stay same
     // other piles stay same

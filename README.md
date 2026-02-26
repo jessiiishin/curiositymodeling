@@ -24,12 +24,18 @@ using a smaller game with only 12 cards total.
 **Signatures and Predicates**
 
 Signatures:
-- Boolean
-    - True, False
-- Suit
-    - Heart, Diamond, Spade, Clover
-- Color
-    - Red, Black
+- Boolean (True, False):
+    - Abstract sig extended by True and False. 
+    - Represents rudimentary boolean logic.
+
+- Suit (Heart, Diamond, Spade, Clover):
+    - Abstract sig extended by Heart, Diamond, Spade, Clover.
+    - Represents the four suits of a standard 52 card deck.
+
+- Color (Red, Black):
+    - Abstract sig extended by Red, Black.
+    - Represents the two colors that a given card can be.
+
 - Solitaire
 - GameState
 - Card
@@ -38,15 +44,40 @@ Signatures:
 - Deck
 - Discard
 
+
 Predicates:
-- general_wellformed
-- twelve_wellformed
-- wellformed_initial
-- twelve_init
-- validEndPile
-- completedEndPile
-- validMove
-- moveTableauCard
+- general_wellformed:
+    - Enforces that the deals (whatever the number of cards are) are wellformed.
+    - Cards have a suits and colors that correspond to each other, no duplicate cards, the number 
+    of foundations = number of suits, a stack of cards is linear, and cards cannot appear in 
+    multiple stacks (deck, pile, endpile, etc.) at once.
+
+- twelve_wellformed:
+    - Enforces that there are twelve wellformed cards, ranks from 1 to 3.
+
+- wellformed_initial:
+    - Defines what a good starting state is like.
+    - Tableau cards in piles should all be facing down except for the topmost one, EndPiles should
+    be empty, piles should not be empty, deck should not be empty, discard should be empty
+
+- twelve_init:
+    - Defines what a good starting state is like for specifically twelve cards.
+    - 3 piles, first one has 1 card, second one has 2 cards, third has 3. Deck has 6 cards.
+
+- validEndPile:
+    - Defines what a valid EndPile (foundation) should be. 
+    - Every card should match the EndPile's suit, be in descending order (K->A top to bottom), 
+    bottom card rank = 1, all cards face up.
+
+- completedEndPile:
+    - Defines what a complete EndPile (foundation) should be for twelve cards.
+    - It's a valid EndPile with Topmost card's rank being 3. 
+
+- validMove:
+
+- moveToPile:
+
+
 - drawCard
 - moveCardToFoundation
 - gameComplete

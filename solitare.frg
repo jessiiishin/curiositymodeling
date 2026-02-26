@@ -52,22 +52,19 @@ abstract sig Color {}
 one sig Red, Black extends Color {}
 one sig Heart, Diamond, Spade, Clover extends Suit {}
 
-sig GameState {
-    init: lone GameState,
-    nextState: lone GameState,
+sig Solitaire {
+    init: one GameState,
+    next: pfunc GameState -> GameState
+}
 
-    deckTop: pfunc Deck -> Card,
+sig GameState {
+    deckTop: lone Card,
     discardTop: lone Card,
     endPileTop: pfunc EndPile -> Card,
     columnTop: pfunc Pile -> Card, // top of stack
     
     faceDown: func Card -> Boolean,
-    cardBelow: pfunc Card -> Card,
-
-    endPileComplete: func EndPile -> Boolean,
-    pileEmpty: func Pile -> Boolean,
-    deckEmpty: func Deck -> Boolean,
-    discardEmpty: lone Boolean  
+    cardBelow: pfunc Card -> Card
 }
 // if gamestate is what changes cards next and prev will not change
 
@@ -81,7 +78,7 @@ sig Pile {}
 sig EndPile {
     endPileSuit: one Suit
 }
-sig Deck {}
+one sig Deck {}
 one sig Discard {}
 
 pred general_wellformed {
@@ -128,15 +125,6 @@ pred general_wellformed {
         }
 
         exclusiveDecksAndPiles[st]
-
-        all p: Pile, ep: EndPile | {
-            st.pileEmpty[p] = True iff st.columnTop[p] = none
-        }
-
-        all d: Deck | {
-            st.deckEmpty[d] = True iff st.deckTop[d] = none
-        }
-        // if a pile or endPile or deck is not empty, then it must have at least one card that it can reach
     }
 
 }
@@ -153,15 +141,15 @@ pred inEndPile[gs: GameState, ep: EndPile, c: Card] {
     c = gs.endPileTop[ep] or reachable[c, gs.endPileTop[ep], gs.cardBelow]
 }
 
-pred inDeck[gs: GameState, d: Deck, c: Card] { 
-    c = gs.deckTop[d] or reachable[c, gs.deckTop[d], gs.cardBelow]
+pred inDeck[gs: GameState, c: Card] { 
+    c = gs.deckTop or reachable[c, gs.deckTop, gs.cardBelow]
 }
 
 pred exclusiveDecksAndPiles[st: GameState] {
     all c: Card | {
         let someInPile = (some p: Pile | inPile[st, p, c]) |
         let someInEndPile = (some ep: EndPile | inEndPile[st, ep, c]) |
-        let someInDeck = (some d: Deck | inDeck[st, d, c]) |
+        let someInDeck = (inDeck[st, c]) |
         let someInDiscard = inDiscard[st, c] | {
             someInPile or someInEndPile or someInDeck or someInDiscard
 
@@ -191,7 +179,6 @@ pred wellformed_initial[gs: GameState] {
     // all piles should be full
     // top of stack has face up, everything else has face down
     all p: Pile | {
-        gs.pileEmpty[p] = False
         some gs.columnTop[p]
         gs.faceDown[gs.columnTop[p]] = False
 
@@ -203,21 +190,16 @@ pred wellformed_initial[gs: GameState] {
     }
 
     // deck should not be empty and all cards are face down
-    all d: Deck | {
-        gs.deckEmpty[d] = False
-        some gs.deckTop[d]
-        all c: Card | (gs.deckTop[d] = c or reachable[c, gs.deckTop[d], gs.cardBelow]) implies {
-            gs.faceDown[c] = True
-        }
+    some gs.deckTop
+    all c: Card | (inDeck[gs, c]) implies {
+        gs.faceDown[c] = True
     }
 
     // no discard pile
-    gs.discardEmpty = True
     no gs.discardTop
 
     // endpiles are empty & not complete
     all endPile: EndPile | { 
-        gs.endPileComplete[endPile] = False
         no gs.endPileTop[endPile]
     }
 }
@@ -235,9 +217,7 @@ pred twelve_init {
                 no gs.cardBelow[gs.cardBelow[gs.cardBelow[gs.columnTop[p3]]]])
         }
 
-        some d: Deck | {
-            #{c: Card | reachable[c, gs.deckTop[d], gs.cardBelow]} = 5
-        }
+        #{c: Card | reachable[c, gs.deckTop, gs.cardBelow]} = 5
 
         wellformed_initial[gs]
     }
@@ -332,11 +312,29 @@ pred moveTableauCard[pre, post: GameState] {
 pred drawCard[pre, post: GameState] {
     -- GUARD
     // there must be at least one card in the deck
+    some pre.deckTop
     
     -- ACTION
+    // previous top of deck becomes top of discard
+    pre.deckTop = post.discardTop
+
+    // previous top of discard goes below new top of discord
+    post.cardBelow[post.discardTop] = pre.discardTop
+    post.deckTop = pre.cardBelow[pre.deckTop]
+
     // top of deck -> faceDown = False
+    post.faceDown[post.discardTop] = False
 
     -- FRAME CONDITION
+    // piles consistent
+    all ep: EndPile | post.endPileTop[ep] = pre.endPileTop[ep]
+    all p: Pile | post.columnTop[p] = pre.columnTop[p]
+
+    // face down still same and card below same
+    all c: Card | c != post.discardTop implies {
+        post.cardBelow[c] = pre.cardBelow[c]
+        post.faceDown[c] = pre.faceDown[c]
+    }
 }
 
 pred moveCardToFoundation[pre, post: GameState] {
@@ -360,9 +358,9 @@ Game properties predicates
 
 pred gameComplete[gs: GameState] {
     all ep: EndPile | completedEndPile[gs, ep]
-    all p: Pile | gs.pileEmpty[p] = True
-    all d: Deck | gs.deckEmpty[d] = True
-    gs.discardEmpty = True
+    all p: Pile | no gs.columnTop[p]
+    no gs.deckTop
+    no gs.discardTop
 }
 
 pred winnable {}

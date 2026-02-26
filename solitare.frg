@@ -52,7 +52,7 @@ abstract sig Color {}
 one sig Red, Black extends Color {}
 one sig Heart, Diamond, Spade, Clover extends Suit {}
 
-sig Solitaire {
+one sig Solitaire {
     init: one GameState,
     next: pfunc GameState -> GameState
 }
@@ -127,6 +127,9 @@ pred general_wellformed {
         exclusiveDecksAndPiles[st]
     }
 
+    all gs1, gs2: GameState | Solitaire.next[gs1] = gs2 implies {
+        validMove[gs1, gs2]
+    }
 }
 
 pred inDiscard[gs: GameState, c: Card] {
@@ -273,17 +276,15 @@ pred completedEndPile[gs: GameState, ep: EndPile] {
 Player movement predicates
 */
 
-pred validMove {
+pred validMove[pre: GameState, post: GameState] {
     -- GUARD
     // wellformed
     // not winning, game is not finished
     
     -- ACTION
-    some pre, post: GameState | {
-        moveTableauCard[pre, post] or
-        drawCard[pre, post] or 
-        moveCardToFoundation[pre, post]
-    }
+    moveTableauCard[pre, post] or
+    drawCard[pre, post] or 
+    moveCardToFoundation[pre, post]
 
     -- FRAME CONDITION
 }
@@ -369,12 +370,19 @@ pred stayWinning {} //?
 valid_ep: run {
     twelve_wellformed
     some gs: GameState | all ep: EndPile | validEndPile[gs, ep]
-} for exactly 12 Card, exactly 1 GameState, exactly 3 Pile, exactly 4 EndPile, exactly 1 Deck
+} for exactly 12 Card, exactly 1 GameState, exactly 3 Pile, exactly 4 EndPile
 
 game_complete: run {
     twelve_wellformed
     some gs: GameState | gameComplete[gs]
-} for exactly 1 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile, exactly 1 Deck
+} for exactly 1 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
+
+draw_card: run {
+    twelve_wellformed
+    some g1, g2: 
+} 
+for exactly 1 Solitaire, 2 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
+for next is linear
 
 // run {
 //     wellformed

@@ -78,6 +78,7 @@ pred general_wellformed {
         one endPile: EndPile | endPile.endPileSuit = s
     }
 
+
     // linearity of stack
     all st: GameState | {
         all c1: Card {
@@ -93,6 +94,9 @@ pred general_wellformed {
                 }
             }
         }
+
+        // all end piles valid
+        all ep: EndPile | validEndPile[st, ep]
 
         // prevent dags
         all disj c1, c2: Card | {
@@ -138,6 +142,16 @@ pred exclusiveDecksAndPiles[st: GameState] {
             (someInDeck implies not someInPile and not someInEndPile and not someInDiscard)
             (someInDiscard implies not someInPile and not someInEndPile and not someInDeck)
         }
+    }
+
+    // no two endpiles share the same top card
+    all disj ep1, ep2: EndPile | all c: Card | {
+        inEndPile[st, ep1, c] implies not inEndPile[st, ep2, c]
+    }
+
+    // no two piles share the same top card
+    all disj p1, p2: Pile | all c: Card | {
+        inPile[st, p1, c] implies not inPile[st, p2, c]
     }
 }
 
@@ -239,7 +253,6 @@ pred validEndPile[gs: GameState, ep: EndPile] {
             bottom.rank = 1
         }
     }
-
 }
 
 pred completedEndPile[gs: GameState, ep: EndPile] {

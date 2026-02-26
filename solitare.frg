@@ -310,6 +310,7 @@ pred validMove {
 
 pred moveTableauCard[pre, post: GameState] {
     -- GUARD
+    some targetCard, destCard: Card |
     // targetCard is faceDown = False
     // destCard is faceDown = False
     // targetCard is either top of an EndPile or on top of Deck/Discard or on top of a pile
@@ -335,13 +336,14 @@ pred drawCard[pre, post: GameState] {
     
     -- ACTION
     // top of deck -> faceDown = False
+    // move to discard
 
     -- FRAME CONDITION
 }
 
 pred moveCardToFoundation[pre, post: GameState] {
     -- GUARD
-    // targetCard must be a card from a Pile
+    // targetCard must be a card from a Pile or Discard
     // destCard must be the top of an EndPile
     // targetCard rank > destCard rank
     // targetCard suit = destCard suit

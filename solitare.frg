@@ -79,8 +79,8 @@ pred general_wellformed {
     }
 
 
-    // linearity of stack
     all gs: GameState | {
+        // linearity of stack
         all c1: Card {
             not gs.cardBelow[c1] = c1
             not reachable[c1, c1, gs.cardBelow]
@@ -155,7 +155,7 @@ pred exclusiveDecksAndPiles[st: GameState] {
     }
 }
 
-validPile[gs: GameState, p: Pile] {
+pred validPile[gs: GameState, p: Pile] {
     // topmost card on pile should be face up
     some gs.columnTop[p] implies gs.faceDown[gs.columnTop[p]] = False
 
@@ -372,6 +372,10 @@ pred moveEndPileToPile[targetCard, destCard: Card, srcEndP: EndPile, destP: Pile
     
     
     -- FRAME CONDITION
+}
+
+pred resetDeck[pre, post: GameState] {
+    
 }
 
 pred drawCard[pre, post: GameState] {

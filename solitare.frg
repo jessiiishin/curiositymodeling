@@ -52,7 +52,7 @@ abstract sig Color {}
 one sig Red, Black extends Color {}
 one sig Heart, Diamond, Spade, Clover extends Suit {}
 
-sig Solitaire {
+one sig Solitaire {
     init: one GameState,
     next: pfunc GameState -> GameState
 }
@@ -127,6 +127,9 @@ pred general_wellformed {
         exclusiveDecksAndPiles[st]
     }
 
+    // all disj gs1, gs2: GameState | Solitaire.next[gs1] = gs2 implies {
+    //     validMove[gs1, gs2]
+    // }
 }
 
 pred inDiscard[gs: GameState, c: Card] {
@@ -225,7 +228,7 @@ pred twelve_init {
 
 twelve_cards: run {
     twelve_wellformed 
-} for exactly 12 Card, 0 GameState
+} for exactly 12 Card, 1 GameState, exactly 4 EndPile
 
 twelve_cards_wellformed_deal: run {
     twelve_wellformed
@@ -273,17 +276,15 @@ pred completedEndPile[gs: GameState, ep: EndPile] {
 Player movement predicates
 */
 
-pred validMove {
+pred validMove[pre: GameState, post: GameState] {
     -- GUARD
     // wellformed
     // not winning, game is not finished
     
     -- ACTION
-    some pre, post: GameState | {
-        moveTableauCard[pre, post] or
-        drawCard[pre, post] or 
-        moveCardToFoundation[pre, post]
-    }
+    moveTableauCard[pre, post] or
+    drawCard[pre, post] or 
+    moveCardToFoundation[pre, post]
 
     -- FRAME CONDITION
 }
@@ -365,18 +366,44 @@ pred gameComplete[gs: GameState] {
     no gs.discardTop
 }
 
-pred winnable {}
-pred stayWinning {} //?
+pred stayComplete {
+    some gs: GameState | gameComplete[gs] implies {
+        all after: GameState | reachable[after, gs, next] implies {
+            all ep: EndPile | gs.endPileTop[ep] = after.endPileTop[ep]
+            all p: Pile | gs.columnTop[p] = after.columnTop[p]
+            
+            all c: Card | {
+                gs.cardBelow[c] = after.cardBelow[c]
+                gs.faceDown[c] = after.faceDown[c]
+            }
+            no after.deckTop
+            no after.discardTop
+        }
+    }
+} //?
+
+pred winnable {
+    some gs: GameState | gameComplete[gs] implies {
+        reachable[gs, init, next]
+    }
+}
 
 valid_ep: run {
     twelve_wellformed
     some gs: GameState | all ep: EndPile | validEndPile[gs, ep]
-} for exactly 12 Card, exactly 1 GameState, exactly 3 Pile, exactly 4 EndPile, exactly 1 Deck
+} for exactly 12 Card, exactly 1 GameState, exactly 3 Pile, exactly 4 EndPile
 
 game_complete: run {
     twelve_wellformed
     some gs: GameState | gameComplete[gs]
-} for exactly 1 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile, exactly 1 Deck
+} for exactly 1 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
+
+draw_card: run {    
+    twelve_wellformed
+    some pre, post: GameState | drawCard[pre, post]
+} 
+for exactly 2 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
+for {next is linear}
 
 // run {
 //     wellformed

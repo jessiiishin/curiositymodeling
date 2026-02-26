@@ -92,6 +92,16 @@ pred general_wellformed {
         // all piles valid
         all p: Pile | validPile[gs, p]
 
+        // deck face down
+        all c: Card | (inDeck[gs, c]) implies {
+            gs.faceDown[c] = True
+        }
+
+        // discard face up
+        all c: Card | (inDiscard[gs, c]) implies {
+            gs.faceDown[c] = False
+        }
+
         // prevent dags
         all disj c1, c2: Card | {
             some gs.cardBelow[c1] and some gs.cardBelow[c2] implies {
@@ -197,11 +207,8 @@ pred wellformed_initial[gs: GameState] {
         }
     }
 
-    // deck should not be empty and all cards are face down
+    // deck should not be empty
     some gs.deckTop
-    all c: Card | (inDeck[gs, c]) implies {
-        gs.faceDown[c] = True
-    }
 
     // no discard pile
     no gs.discardTop
@@ -375,7 +382,42 @@ pred moveEndPileToPile[targetCard, destCard: Card, srcEndP: EndPile, destP: Pile
 }
 
 pred resetDeck[pre, post: GameState] {
+    -- GUARd
+    no pre.deckTop
+    some pre.discardTop
+
+    -- ACTION
+    // move bottom card to the top
+    some bottom: Card | {
+        inDiscard[pre, bottom]
+        no pre.cardBelow[bottom]
+        post.deckTop = bottom
+    }
+
+    // reverse every card
+    all disj c1, c2: Card | (pre.cardBelow[c1] = c2 and inDiscard[pre, c1]) implies {
+        post.cardBelow[c2] = c1
+    }
+
+    // last card in post has nothing
+    no post.cardBelow[pre.discardTop]
+
+    // all cards in post are now face down
+    all c: Card | inDiscard[pre, c] implies {
+        post.faceDown[c] = True
+    }
+
+    no post.discardTop
+
+    -- FRAME
+    all ep: EndPile | post.endPileTop[ep] = pre.endPileTop[ep]
+    all p: Pile | post.columnTop[p] = pre.columnTop[p]
     
+    all c: Card | not inDiscard[pre, c] implies {
+        post.cardBelow[c] = pre.cardBelow[c]
+        post.faceDown[c] = pre.faceDown[c]
+    }
+
 }
 
 pred drawCard[pre, post: GameState] {
@@ -520,6 +562,13 @@ game_complete: run {
 draw_card: run {    
     twelve_wellformed
     some pre, post: GameState | drawCard[pre, post]
+} 
+for exactly 2 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
+for {next is linear}
+
+reset_deck: run {    
+    twelve_wellformed
+    some pre, post: GameState | resetDeck[pre, post]
 } 
 for exactly 2 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
 for {next is linear}

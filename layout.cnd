@@ -11,9 +11,6 @@ directives:
   - hideAtom: {selector: Color}
   - hideAtom: {selector: Suit}
   - hideAtom: {selector: Boolean}
-  - attribute: {field: endPileComplete}
-  - attribute: {field: pileEmpty}
-  - attribute: {field: deckEmpty}
   - attribute: {field: faceDown}
   - attribute: {field: endPileSuit}
   - attribute: {field: color}

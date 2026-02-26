@@ -96,7 +96,7 @@ pred general_wellformed {
     // no 2 cards are the same
     all disj c1, c2: Card | not (c1.suit = c2.suit and c1.rank = c2.rank)
 
-    // # of endpile = # of suits ?
+    // # of endpile = # of suits
     all s: Suit | {
         one endPile: EndPile | endPile.endPileSuit = s
     }
@@ -280,7 +280,64 @@ Player movement predicates
 */
 
 pred validMove {
+    -- GUARD
+    // wellformed
+    // not winning, game is not finished
+    
+    -- ACTION
+    some pre, post: GameState | {
+        moveTableauCard[pre, post] or
+        drawCard[pre, post] or 
+        moveCardToFoundation[pre, post]
+    }
 
+    -- FRAME CONDITION
+}
+
+pred moveTableauCard[pre, post: GameState] {
+    -- GUARD
+    // targetCard is faceDown = False
+    // destCard is faceDown = False
+    // targetCard is either top of an EndPile or on top of Deck/Discard or on top of a pile
+    // destCard must be the top card in one of a Pile
+    // targetCard must be lower in rank than destCard
+    // targetCard must be different color than destCard
+    // targetCard must be different from destCard
+
+    -- ACTION
+    // targetCard cardBelow = destCard
+    // post.columnTop[pile] = targetCard
+
+    -- FRAME CONDITION
+    // deck stays same
+    // end piles stay same
+    // other piles stay same
+    // other cards in destination cards don't change orders
+}
+
+pred drawCard[pre, post: GameState] {
+    -- GUARD
+    // there must be at least one card in the deck
+    
+    -- ACTION
+    // top of deck -> faceDown = False
+
+    -- FRAME CONDITION
+}
+
+pred moveCardToFoundation[pre, post: GameState] {
+    -- GUARD
+    // targetCard must be a card from a Pile
+    // destCard must be the top of an EndPile
+    // targetCard rank > destCard rank
+    // targetCard suit = destCard suit
+    // (correspondingly) targetCard color = destCard color idk if this needs to be extra enforced
+
+    -- ACTION
+    // targetCard cardBelow = destCard
+    // post.endPile[endpile] = targetCard
+
+    -- FRAME CONDITION
 }
 
 /*

@@ -57,6 +57,7 @@ sig GameState {
     nextState: lone GameState,
 
     deckTop: pfunc Deck -> Card,
+    discardTop: lone Card,
     endPileTop: pfunc EndPile -> Card,
     columnTop: pfunc Pile -> Card, // top of stack
     
@@ -65,7 +66,8 @@ sig GameState {
 
     endPileComplete: func EndPile -> Boolean,
     pileEmpty: func Pile -> Boolean,
-    deckEmpty: func Deck -> Boolean
+    deckEmpty: func Deck -> Boolean,
+    discardEmpty: lone Boolean  
 }
 // if gamestate is what changes cards next and prev will not change
 
@@ -80,6 +82,7 @@ sig EndPile {
     endPileSuit: one Suit
 }
 sig Deck {}
+one sig Discard {}
 
 pred general_wellformed {
     // each suit has same number of cards
@@ -138,6 +141,10 @@ pred general_wellformed {
 
 }
 
+pred inDiscard[gs: GameState, c: Card] {
+    c = gs.discardTop or reachable[c, gs.discardTop, gs.cardBelow]
+}
+
 pred inPile[gs: GameState, p: Pile, c: Card] {
     c = gs.columnTop[p] or reachable[c, gs.columnTop[p], gs.cardBelow]
 }
@@ -154,15 +161,18 @@ pred exclusiveDecksAndPiles[st: GameState] {
     all c: Card | {
         let someInPile = (some p: Pile | inPile[st, p, c]) |
         let someInEndPile = (some ep: EndPile | inEndPile[st, ep, c]) |
-        let someInDeck = (some d: Deck | inDeck[st, d, c]) | {
-            someInPile or someInEndPile or someInDeck
+        let someInDeck = (some d: Deck | inDeck[st, d, c]) |
+        let someInDiscard = inDiscard[st, c] | {
+            someInPile or someInEndPile or someInDeck or someInDiscard
 
-            (someInPile implies not someInEndPile and not someInDeck)
-            (someInEndPile implies not someInPile and not someInDeck)
-            (someInDeck implies not someInPile and not someInEndPile)
+            (someInPile implies not someInEndPile and not someInDeck and not someInDiscard)
+            (someInEndPile implies not someInPile and not someInDeck and not someInDiscard)
+            (someInDeck implies not someInPile and not someInEndPile and not someInDiscard)
+            (someInDiscard implies not someInPile and not someInEndPile and not someInDeck)
         }
     }
 }
+
 
 /*
 12 cards:
@@ -200,6 +210,10 @@ pred wellformed_initial[gs: GameState] {
             gs.faceDown[c] = True
         }
     }
+
+    // no discard pile
+    gs.discardEmpty = True
+    no gs.discardTop
 
     // endpiles are empty & not complete
     all endPile: EndPile | { 
@@ -348,6 +362,7 @@ pred gameComplete[gs: GameState] {
     all ep: EndPile | completedEndPile[gs, ep]
     all p: Pile | gs.pileEmpty[p] = True
     all d: Deck | gs.deckEmpty[d] = True
+    gs.discardEmpty = True
 }
 
 pred winnable {}

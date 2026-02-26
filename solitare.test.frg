@@ -140,18 +140,21 @@ test suite for general_wellformed {
     GW_sameCards: assert {some disj c1, c2: Card | c1.suit = c2.suit and c1.rank = c2 rank and general_wellformed} is unsat
     GW_sameSuit: assert {some disj c1, c2: Card | c1.suit = c2.suit} is sat
     GW_sameRank: assert {some disj c1, c2: Card | c1.rank = c2.rank} is sat
-    
-    // same cards
-    // linearity
-    // 
+
+    GW_dontNeedTwelveWellformed: assert {not twelveWellformed and general_wellformed} is sat
 }
 
 test suite for twelve_wellformed {
-    
+    TW_noCardsOutOfRange: assert {some c: Card | (c.rank > 3 or c.rank < 1) and twelve_wellformed} is unsat
+    TW_consistentWithGeneral: assert twelve_wellformed is consistent with general_wellformed
+    TW_cardInRange: assert {some c: Card | c.rank = 1 or c.rank = 2 or c.rank = 3 and twelve_wellformed} is sat
+    TW_cardRankZero: assert {some c: Card | c.rank = 0 and twelve_wellformed} is unsat
+
 }
 
 test suite for wellformed_initial {
-    
+    WI_consistentWithGeneral: assert general_wellformed is consistent with wellformed_initial
+
 }
 
 test suite for twelve_init {
@@ -181,8 +184,10 @@ test suite for twelve_init {
 // two or more cards turned facedown=False
 // a card that was face up became facedown = True
 // order of pile changed (or endpile, or deck)
+// unchanged stacks of cards stay the same before and after (contents, order, top)
 // a card that was not supposed to be turned face up became face up (not at top or not revealed by deck)
 // somehow the color alternation is not correct after a move
+// trying to move cards from empty stacks should not be possible
 
 // nothing happened but didn't lose (something should happen at every move)
 

@@ -2,17 +2,12 @@
 
 open "solitare.frg"
 
-fun cardInPile[c: Card, gs: GameState, p: Pile]: Boolean {
-    (c = gs.columnTop[p]) or (c in gs.columnTop[p].^(gs.cardBelow))
-}
-
-fun cardInEndPile[c: Card, gs: GameState, ep: EndPile]: Boolean {
-    (c = gs.endPileTop[ep]) or (c in gs.endPileTop[ep].^(gs.cardBelow))
-}
-
-fun cardInDeck[c: Card, gs: GameState, d: Deck]: Boolean {
-    (c = gs.deckTop[d]) or (c in gs.deckTop[d].^(gs.cardBelow))
-}
+/* 
+--------------------------------------------------
+    Predicates related to card wellformedness
+    andtheir memberships
+--------------------------------------------------
+*/
 
 pred cyclicCards {
     some gs: GameState, c: Card | {
@@ -40,7 +35,7 @@ pred illegalCards {
     }
 }
 
-// card is in multiple places at once
+// card is in multiple piles at once
 pred cardInMultPiles {
     some gs: GameState, c: Card | {
         some disj p1, p2: Pile | {
@@ -50,12 +45,20 @@ pred cardInMultPiles {
     }
 }
 
+// card is in multiple endpiles at once
 pred cardInMultipleEndPiles {
     some gs: GameState, c: Card | {
-        some disj p1, p2: Pile | {
-            cardInEndPile[c, gs, p1]
-            cardInEndPile[c, gs, p2]
+        some disj ep1, ep2: EndPile | {
+            cardInEndPile[c, gs, ep1]
+            cardInEndPile[c, gs, ep2]
         }
+    }
+}
+
+pred cardInDeckAndDiscard {
+    some gs: GameState, c: Card | {
+        some dis: Discard | cardInDiscard[c, gs, dis]
+        some deck: Deck | cardInDeck[c, gs, deck]
     }
 }
 
@@ -84,13 +87,24 @@ pred cardFaceDownInEndPile {
     }
 }
 
+pred cardFaceDownInDiscard {
+    some gs: GameState, c: Card, dis: Discard | {
+        cardInDiscard[c, gs, dis]
+        gs.faceDown[c] = True
+    }
+}
+
 // card is at top of pile but is also below some other card
 pred topCardButBelow {
-    some gs: GameState, disj c1, c2: Card, p: Pile, ep: Pile, d: Deck | {
-        gs.cardBelow[c2, c1] and
-        (c1 = gs.columnTop[p] or
-            c1 = gs.endPileTop[ep] or 
-            c1 = gs.deckTop[ep])
+    some gs: GameState | {
+        some disj c1, c2: Card | {
+            some p: Pile, ep: EndPile, d: Deck | {
+                gs.cardBelow[c2, c1] and
+                (c1 = gs.columnTop[p] or
+                    c1 = gs.endPileTop[ep] or 
+                    c1 = gs.deckTop[d])
+            }
+        }
     }
 }
 
@@ -98,24 +112,19 @@ pred topCardButBelow {
 // multiple cards are face up in a state that's not initial
 pred multCardsInPileFaceUp {
     some gs: GameState, p: Pile | {
-        #{c: Card | cardInPile[c, gs, p]
+        #{c: Card | cardInPile[c, gs, p] and
             gs.faceDown[c] = False} > 1
     }
 }
 
-// cards are in the discard or endpile at initial
-
-// multiple cards are top
-pred multTopCards {
-    some disj c1, c2: Card, gs: GameState | {
-        (some p: Pile | gs.columnTop[p] = c1 and gs.columnTop[p] = c2) or
-        (some ep: EndPile | gs.endPileTop[p] = c1 and gs.endPileTop[p] = c2) or
-        (some d: Deck | gs.deckTop[p] = c1 and gs.deckTop[p] = c2)
-    }
-}
+/* 
+--------------------------------------------------
+    Suites for wellformed & card memberships
+--------------------------------------------------
+*/
 
 test suite for general_wellformed {
-
+    // 
 }
 
 test suite for twelve_wellformed {
@@ -131,9 +140,17 @@ test suite for twelve_init {
 	assert some gs: GameState | gameComplete[gs] is inconsistent with twelve_init
 }
 
+/* 
+--------------------------------------------------
+    Predicates for valid moves
+--------------------------------------------------
+*/
 
-/*
-Move Tests
+
+/* 
+--------------------------------------------------
+    Suites for valid moves
+--------------------------------------------------
 */
 
 // card moved to invalid position where it's not wellformed anymore

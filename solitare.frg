@@ -2,49 +2,6 @@
 
 option run_sterling "layout.cnd"
 
-/*
-Things to possibly implement
-
-when are cards stackable?:
-- alternating colors
-- in order of rank, never out of order
-
-when are cards stackable in the complete pile?:
-- same suit
-- ascending rank order
-
-what can go in empty space:
-- only cards that are of rank King when player movement
-- any card that is face down in beginning of game
-
-what can player do:
-- move card (onto other cards)
-- draw card from deck
-- reveal card from deck
-- move to complete pile
-
-what is a wellformed deck of cards (usually):
-- 52 cards
-- 13 of each suit: heart, diamond, spade, clover
-- all suits have complete set of cards ace through king
-    - no other numbers should exist
-    - none of them should be duplicates
-- cards once game starts preserves their identity
-    - doesn't suddenly change their suit, etc.
-
-what is a wellformed game state:
-- 7 spaces for cards (each col has 1 card facing up initially)
-    - initial state:
-    - 1) 1 card
-    - 2) 1 card down, 1 card up
-    - 3) 2 card down
-    - 4) 3 card down
-    - 5) ...
-- no cards other than the card that was moved by player changes?
-    - well except for when the bottom face down cards are revealed
-- 
-*/
-
 abstract sig Boolean {}
 one sig True, False extends Boolean {}
 abstract sig Suit {}
@@ -80,6 +37,26 @@ sig EndPile {
 }
 one sig Deck {}
 one sig Discard {}
+
+/*
+Helper functions to check card is part of pile, endpile, deck, or discard
+*/
+fun cardInPile[c: Card, gs: GameState, p: Pile]: Boolean {
+    (c = gs.columnTop[p]) or (c in gs.columnTop[p].^(gs.cardBelow))
+}
+
+fun cardInEndPile[c: Card, gs: GameState, ep: EndPile]: Boolean {
+    (c = gs.endPileTop[ep]) or (c in gs.endPileTop[ep].^(gs.cardBelow))
+}
+
+fun cardInDeck[c: Card, gs: GameState, d: Deck]: Boolean {
+    (c = gs.deckTop[d]) or (c in gs.deckTop[d].^(gs.cardBelow))
+}
+
+fun cardInDiscard[c: Card, gs: GameState, dis: Discard]: Boolean {
+    (c = gs.discardTop[dis]) or (c in gs.discardTop[dis].^(gs.cardBelow))
+}
+
 
 pred general_wellformed {
     // each suit has same number of cards
@@ -291,7 +268,10 @@ pred validMove[pre: GameState, post: GameState] {
 
 pred moveTableauCard[pre, post: GameState] {
     -- GUARD
-    some targetCard, destCard: Card |
+    some targetCard, destCard: Card | {
+        pre.faceDown[targetCard] = False
+        pre.faceDown[destCard] = False
+    }
     // targetCard is faceDown = False
     // destCard is faceDown = False
     // targetCard is either top of an EndPile or on top of Deck/Discard or on top of a pile
@@ -368,16 +348,16 @@ pred gameComplete[gs: GameState] {
 
 pred stayComplete {
     some gs: GameState | gameComplete[gs] implies {
-        all after: GameState | reachable[after, gs, next] implies {
-            all ep: EndPile | gs.endPileTop[ep] = after.endPileTop[ep]
-            all p: Pile | gs.columnTop[p] = after.columnTop[p]
+        all post: GameState | reachable[post, gs, next] implies {
+            all ep: EndPile | gs.endPileTop[ep] = post.endPileTop[ep]
+            all p: Pile | gs.columnTop[p] = post.columnTop[p]
             
             all c: Card | {
-                gs.cardBelow[c] = after.cardBelow[c]
-                gs.faceDown[c] = after.faceDown[c]
+                gs.cardBelow[c] = post.cardBelow[c]
+                gs.faceDown[c] = post.faceDown[c]
             }
-            no after.deckTop
-            no after.discardTop
+            no post.deckTop
+            no post.discardTop
         }
     }
 } //?

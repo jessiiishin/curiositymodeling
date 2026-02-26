@@ -23,6 +23,36 @@ using a smaller game with only 12 cards total.
 
 **Signatures and Predicates**
 
+Signatures:
+- Boolean
+    - True, False
+- Suit
+    - Heart, Diamond, Spade, Clover
+- Color
+    - Red, Black
+- Solitaire
+- GameState
+- Card
+- Pile
+- EndPile
+- Deck
+- Discard
+
+Predicates:
+- general_wellformed
+- twelve_wellformed
+- wellformed_initial
+- twelve_init
+- validEndPile
+- completedEndPile
+- validMove
+- moveTableauCard
+- drawCard
+- moveCardToFoundation
+- gameComplete
+- stayComplete
+- winnable
+
 **Testing**
 
 **Documentation**

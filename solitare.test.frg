@@ -162,7 +162,8 @@ test suite for twelve_init {
 	assert some gs: GameState | gameComplete[gs] is inconsistent with twelve_init
 }
 
-// test that endpiles always include all the ranks
+test suite for 
+// test that endpiles always include all the ranks when complete
 
 
 /* 

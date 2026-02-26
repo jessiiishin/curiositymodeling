@@ -80,33 +80,33 @@ pred general_wellformed {
 
 
     // linearity of stack
-    all st: GameState | {
+    all gs: GameState | {
         all c1: Card {
-            not st.cardBelow[c1] = c1
-            not reachable[c1, c1, st.cardBelow]
-        }
-
-        // no face up card below a face down card
-        all p: Pile | {
-            all c: Card | {
-                (inPile[st, p, c] and some st.cardBelow[c] and inPile[st, p, st.cardBelow[c]]) implies {
-                    st.faceDown[c] = True implies st.faceDown[st.cardBelow[c]] = True
-                }
-            }
+            not gs.cardBelow[c1] = c1
+            not reachable[c1, c1, gs.cardBelow]
         }
 
         // all end piles valid
-        all ep: EndPile | validEndPile[st, ep]
+        all ep: EndPile | validEndPile[gs, ep]
+
+        // all piles valid
+        all p: Pile | validPile[gs, p]
 
         // prevent dags
         all disj c1, c2: Card | {
-            some st.cardBelow[c1] and some st.cardBelow[c2] implies {
-                st.cardBelow[c1] != st.cardBelow[c2]
+            some gs.cardBelow[c1] and some gs.cardBelow[c2] implies {
+                gs.cardBelow[c1] != gs.cardBelow[c2]
             }
         }
 
-        exclusiveDecksAndPiles[st]
+        // face down properties when in deck or in discard
+        all c: Card | inDeck[gs, c] implies gs.faceDown[c] = True
+        all c: Card | inDiscard[gs, c] implies gs.faceDown[c] = False
+
+        exclusiveDecksAndPiles[gs]
     }
+
+    
 
     // all disj gs1, gs2: GameState | Solitaire.next[gs1] = gs2 implies {
     //     validMove[gs1, gs2]
@@ -153,6 +153,20 @@ pred exclusiveDecksAndPiles[st: GameState] {
     all disj p1, p2: Pile | all c: Card | {
         inPile[st, p1, c] implies not inPile[st, p2, c]
     }
+}
+
+validPile[gs: GameState, p: Pile] {
+    // topmost card on pile should be face up
+    some gs.columnTop[p] implies gs.faceDown[gs.columnTop[p]] = False
+
+    // no face up card below a face down card
+    all c: Card | {
+        (inPile[gs, p, c] and some gs.cardBelow[c] and inPile[gs, p, gs.cardBelow[c]]) implies {
+            gs.faceDown[c] = True implies gs.faceDown[gs.cardBelow[c]] = True
+        }
+    }
+    // cards in pile are always in ascending order from top to bottom
+    all c: Card | inPile[gs, p, c] implies gs.cardBelow[c].rank > c.rank
 }
 
 
@@ -466,6 +480,18 @@ one_move_pile_to_pile: run {
         }
     }
 } for exactly 12 Card, 2 GameState, exactly 3 Pile
+
+init_move_pile_to_pile: run {
+    twelve_wellformed
+    twelve_init
+
+    some disj pre, post: GameState | {
+        not gameComplete[pre]
+        some c1, c2: Card, p1, p2: Pile | {
+            movePileToPile[c1, c2, p1, p2, pre, post]
+        }
+    }
+}
 
 twelve_cards: run {
     twelve_wellformed 

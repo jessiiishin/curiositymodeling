@@ -724,7 +724,7 @@ pred validMove[pre: GameState, post: GameState] {
     twelve_wellformed
     not gameComplete[pre]
     
-    some c, c2: Card, p, p2: Pile, ep: EndPile |
+    some c, c2: Card, p, p2: Pile, ep: EndPile | {
         drawCard[pre, post] or
         resetDeck[pre, post] or
         movePileToPile[c, c2, p, p2, pre, post] or
@@ -735,6 +735,7 @@ pred validMove[pre: GameState, post: GameState] {
         moveDiscardToPile[c, p, pre, post] or
         moveDiscardToEmptyPile[c, p, pre, post] or
         moveDiscardToEndPile[c, ep, pre, post]
+    }
 }
 
 

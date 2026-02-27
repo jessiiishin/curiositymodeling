@@ -750,14 +750,24 @@ pred validMove[pre: GameState, post: GameState] {
 }
 
 pred validGame {
+    twelve_wellformed
     twelve_init[Solitaire.init] 
     all gs: GameState | some Solitaire.next[gs] implies validMove[gs, Solitaire.next[gs]]
 }
 
 valid_and_winnable: run {
-    winnable
     validGame
-} for exactly 12 Card, exactly 3 Pile
+    winnable
+} 
+for exactly 12 Card, exactly 3 Pile, exactly 4 EndPile, 20 GameState
+for {next is linear}
+
+one_ep_complete: run {
+    validGame
+    some gs: GameState | some ep: EndPile | completedEndPile[gs, ep]
+} for exactly 12 Card, exactly 3 Pile, exactly 4 EndPile, 8 GameState
+for {next is linear}
+
 
 one_move_pile_to_pile: run {
     twelve_wellformed

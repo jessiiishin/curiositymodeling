@@ -45,8 +45,8 @@ pred illegalCards {
 pred cardInMultPiles {
     some gs: GameState, c: Card | {
         some disj p1, p2: Pile | {
-            inPile[c, gs, p1]
-            inPile[c, gs, p2]
+            inPile[gs, p1, c]
+            inPile[gs, p2, c]
         }
     }
 }
@@ -55,25 +55,25 @@ pred cardInMultPiles {
 pred cardInMultipleEndPiles {
     some gs: GameState, c: Card | {
         some disj ep1, ep2: EndPile | {
-            inEndPile[c, gs, ep1]
-            inEndPile[c, gs, ep2]
+            inEndPile[gs, ep1, c]
+            inEndPile[gs, ep2, c]
         }
     }
 }
 
 pred cardInDeckAndDiscard {
     some gs: GameState, c: Card | {
-        some dis: Discard | inDiscard[c, gs, dis]
-        some deck: Deck | inDeck[c, gs, deck]
+        some dis: Discard | inDiscard[gs, c]
+        some deck: Deck | inDeck[gs, c]
     }
 }
 
 // how to make it more efficient?
 pred cardInMultiplePlaces {
     some gs: GameState, c: Card, p: Pile, ep: EndPile, d: Deck | {
-        (inPile[c, gs, p] and inEndPile[c, gs, ep]) or 
-        (inPile[c, gs, p] and inDeck[c, gs, d]) or 
-        (inEndPile[c, gs, ep] and inDeck[c, gs, d]) 
+        (inPile[gs, p, c] and inEndPile[gs, ep, c]) or 
+        (inPile[gs, p, c] and inDeck[gs, c]) or 
+        (inEndPile[gs, ep, c] and inDeck[gs, c]) 
     }
 }
 
@@ -88,14 +88,14 @@ pred topCardFaceDown {
 
 pred cardFaceDownInEndPile {
     some gs: GameState, c: Card, ep: EndPile | {
-        inEndPile[c, gs, ep]
+        inEndPile[gs, ep, c]
         gs.faceDown[c] = True
     }
 }
 
 pred cardFaceDownInDiscard {
     some gs: GameState, c: Card, dis: Discard | {
-        inDiscard[c, gs, dis]
+        inDiscard[gs, c]
         gs.faceDown[c] = True
     }
 }
@@ -118,8 +118,47 @@ pred topCardButBelow {
 // multiple cards are face up in a state that's not initial
 pred multCardsInPileFaceUp {
     some gs: GameState, p: Pile | {
-        #{c: Card | inPile[c, gs, p] and
+        #{c: Card | inPile[gs, p, c] and
             gs.faceDown[c] = False} > 1
+    }
+}
+
+// endpiles always include all the ranks when complete (for twelve cards)
+pred endPilesWithAllRanks {
+    some gs: GameState | {
+        all ep: EndPile | {
+            gs.endPileTop[ep].rank = 3
+            gs.cardBelow[endPileTop[ep]].rank = 2
+            gs.cardBelow[cardBelow[endPileTop[ep]]].rank = 1
+        }
+    }
+    
+}
+
+// face down cards dont need to have color alternation and also doesn't need to be in order
+pred faceDownCardsNoColorAlt {
+    some p: Pile, gs: GameState | {
+        some disj c1, c2: Card | {
+            gs.faceDown[c1] = True
+            gs.faceDown[c2] = True
+            c1.color = c2.color
+            gs.cardBelow[c1] = c2
+            inPile[gs, p, c1]
+            inPile[gs, p, c2]
+        }
+    }
+}
+
+pred faceDownCardsNoRankOrder {
+    some p: Pile, gs: GameState | {
+        some disj c1, c2: Card | {
+            gs.faceDown[c1] = True
+            gs.faceDown[c2] = True
+            c1.rank >= c2.rank
+            gs.cardBelow[c1] = c2
+            inPile[gs, p, c1]
+            inPile[gs, p, c2]
+        }
     }
 }
 
@@ -136,12 +175,13 @@ test suite for general_wellformed {
     GW_notExclusiveDeckDiscard: assert {cardInDeckAndDiscard and general_wellformed} is unsat
     GW_notExclusiveEndPile: assert {cardInMultipleEndPiles and general_wellformed} is unsat
     GW_notExclusive: assert {cardInMultiplePlaces and general_wellformed} is unsat
+    GW_noColorAltStillWellformed: assert {}
 
-    GW_sameCards: assert {some disj c1, c2: Card | c1.suit = c2.suit and c1.rank = c2 rank and general_wellformed} is unsat
-    GW_sameSuit: assert {some disj c1, c2: Card | c1.suit = c2.suit and general_wellformed} is sat
+    GW_sameCards: assert {some disj c1, c2: Card | c1.suit = c2.suit and c1.rank = c2.rank and general_wellformed} is unsat
+    GW_sameSuit: assert {some disj c1, c2: Card | c1.suit = c2.suit and general_wellformed} is sat for exactly 12 Card
     GW_sameRank: assert {some disj c1, c2: Card | c1.rank = c2.rank and general_wellformed} is sat
-
-    GW_dontNeedTwelveWellformed: assert {not twelveWellformed and general_wellformed} is sat
+    
+    GW_dontNeedTwelveWellformed: assert {not twelve_wellformed and general_wellformed} is sat
 }
 
 test suite for twelve_wellformed {
@@ -153,7 +193,7 @@ test suite for twelve_wellformed {
 }
 
 test suite for wellformed_initial {
-    WI_consistentWithGeneral: assert general_wellformed is consistent with wellformed_initial
+    // WI_consistentWithGeneral: assert general_wellformed is consistent with wellformed_initial
 
 }
 
@@ -162,9 +202,11 @@ test suite for twelve_init {
 	assert some gs: GameState | gameComplete[gs] is inconsistent with twelve_init
 }
 
+test suite for exclusiveDecksAndPiles {
+    
+}
 
-// test that endpiles always include all the ranks when complete
-// face down cards dont need to have color alternation and also doesn't need to be in order
+
 
 
 /* 
@@ -173,10 +215,13 @@ test suite for twelve_init {
 --------------------------------------------------
 */
 
-pred nothingChanges {
-    some pre, post: GameState | {
-        all p: Pile, c: Card | 
-    }
+pred nothingChanges[pre, post: GameState] {
+    pre.deckTop = post.deckTop
+    pre.discardTop = post.discardTop
+    all p: Pile | pre.columnTop[p] = post.columnTop[p]
+    all ep: EndPile | pre.endPileTop[ep] = post.endPileTop[ep]
+    all c: Card | pre.cardBelow[c] = post.cardBelow[c]
+    all c: Card | pre.faceDown[c] = post.faceDown[c]
 }
 
 

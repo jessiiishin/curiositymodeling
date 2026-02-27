@@ -699,10 +699,12 @@ Game properties predicates
 */
 
 pred gameComplete[gs: GameState] {
-    all ep: EndPile | completedEndPile[gs, ep]
-    all p: Pile | no gs.columnTop[p]
-    no gs.deckTop
-    no gs.discardTop
+    all c: Card | gs.faceDown[c] = False or (
+        (all ep: EndPile | completedEndPile[gs, ep]) and
+        (all p: Pile | no gs.columnTop[p]) and
+        (no gs.deckTop) and
+        (no gs.discardTop)
+    )
 }
 
 pred stayComplete {
@@ -732,7 +734,7 @@ pred winnable {
 pred validMove[pre: GameState, post: GameState] {
     twelve_wellformed
     not gameComplete[pre]
-    pre != post
+    // pre != post
     
     some c, c2: Card, p, p2: Pile, ep: EndPile | {
         drawCard[pre, post] or
@@ -757,7 +759,8 @@ pred validGame {
 valid_and_winnable: run {
     winnable
     validGame
-} for exactly 12 Card, exactly 3 Pile, exactly 4 GameState
+} for exactly 12 Card, exactly 3 Pile, exactly 25 GameState
+for {next is linear}
 
 one_move_pile_to_pile: run {
     twelve_wellformed
@@ -815,6 +818,8 @@ reset_deck: run {
 } 
 for exactly 2 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
 for {next is linear}
+
+// winnable:
 
 // run {
 //     wellformed

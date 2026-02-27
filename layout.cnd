@@ -1,12 +1,17 @@
+constraints:
+  - orientation: {selector: '{ ep: EndPile, c: Card | some gs: GameState | gs.endPileTop[ep] = c }', directions: [directlyBelow]}
+  - orientation: {selector: '{ p: Pile, c: Card | some gs: GameState | gs.columnTop[p] = c }', directions: [directlyBelow]}
+  - orientation: {selector: '{ d: Deck, c: Card | some gs: GameState | gs.deckTop = c }', directions: [directlyBelow]}
+  - orientation: {selector: '{ dis: Discard, c: Card | some gs: GameState | gs.discardTop = c }', directions: [directlyBelow]}
+  - orientation: {selector: '{ c1, c2: Card | some gs: GameState | gs.cardBelow[c1] = c2 }', directions: [directlyBelow]}
+
 directives:
+  - inferredEdge: {color: '#0008fc', selector: '{ d: Discard, c: Card | c in GameState.discardTop }', name: top, style: dashed}
+  - inferredEdge: {color: '#0008fc', selector: '{ d: Deck, c: Card | c in GameState.deckTop }', name: top, style: dashed}
   - hideAtom: {selector: Color}
   - hideAtom: {selector: Suit}
   - hideAtom: {selector: Boolean}
-  - attribute: {field: discardTop}
+
   - attribute: {field: faceDown}
   - attribute: {field: endPileSuit}
   - attribute: {field: color}
-  - attribute: {field: suit}
-  - attribute: {field: rank}
-  - projection: {sig: GameState}
-  - flag: hideDisconnectedBuiltIns

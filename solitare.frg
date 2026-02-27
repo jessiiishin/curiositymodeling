@@ -90,6 +90,16 @@ pred general_wellformed {
             }
         }
 
+        // nothing above discard top or deck top
+        some gs.deckTop implies {
+            all c: Card | gs.cardBelow[c] != gs.deckTop
+        }
+
+        some gs.discardTop implies {
+            all c: Card | gs.cardBelow[c] != gs.discardTop
+        }
+
+
         // face down properties when in deck or in discard
         all c: Card | inDeck[gs, c] implies gs.faceDown[c] = True
         all c: Card | inDiscard[gs, c] implies gs.faceDown[c] = False
@@ -687,21 +697,21 @@ pred gameComplete[gs: GameState] {
 }
 
 
-pred stayComplete {
-    all gs: GameState | gameComplete[gs] implies {
-         all post: GameState | reachable[post, gs, next] implies {
-            all ep: EndPile | gs.endPileTop[ep] = post.endPileTop[ep]
-            all p: Pile | gs.columnTop[p] = post.columnTop[p]
+// pred stayComplete {
+//     all gs: GameState | gameComplete[gs] implies {
+//          all post: GameState | reachable[post, gs, next] implies {
+//             all ep: EndPile | gs.endPileTop[ep] = post.endPileTop[ep]
+//             all p: Pile | gs.columnTop[p] = post.columnTop[p]
             
-            all c: Card | {
-                gs.cardBelow[c] = post.cardBelow[c]
-                gs.faceDown[c] = post.faceDown[c]
-            }
-            no post.deckTop
-            no post.discardTop
-        }
-    }
-} //?
+//             all c: Card | {
+//                 gs.cardBelow[c] = post.cardBelow[c]
+//                 gs.faceDown[c] = post.faceDown[c]
+//             }
+//             no post.deckTop
+//             no post.discardTop
+//         }
+//     }
+// } 
 
 pred winnable {
     some gs: GameState | {
@@ -730,7 +740,6 @@ pred validMove[pre: GameState, post: GameState] {
 }
 
 pred validGame {
-    twelve_wellformed
     twelve_init[Solitaire.init] 
 
     all disj gs1, gs2: GameState | {
@@ -867,7 +876,8 @@ for {next is linear}
 one_ep_complete: run {
     validGame
     some gs: GameState | some ep: EndPile | completedEndPile[gs, ep]
-} for exactly 12 Card, exactly 3 Pile, exactly 8 GameState
+} 
+for exactly 12 Card, exactly 3 Pile, exactly 8 GameState
 for {next is linear}
 
 valid_and_winnable: run {
@@ -880,7 +890,8 @@ for {next is linear}
 valid_not_winnable: run {
     validGame
     not winnable
-} for exactly 12 Card, exactly 3 Pile, exactly 4 EndPile, 20 GameState
+} 
+for exactly 12 Card, exactly 3 Pile, exactly 4 EndPile, 20 GameState
 for {next is linear}
 
 stuck: run {
@@ -889,7 +900,8 @@ stuck: run {
         not gameComplete[gs]
         no post: GameState | validMove[gs, post]
     }
-} for exactly 12 Card, exactly 3 Pile, exactly 4 EndPile, 10 GameState
+} 
+for exactly 12 Card, exactly 3 Pile, exactly 4 EndPile, 10 GameState
 for {next is linear}
 
 

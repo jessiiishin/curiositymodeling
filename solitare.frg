@@ -706,8 +706,8 @@ pred gameComplete[gs: GameState] {
 }
 
 pred stayComplete {
-    some gs: GameState | gameComplete[gs] implies {
-        all post: GameState | reachable[post, gs, next] implies {
+    all gs: GameState | gameComplete[gs] implies {
+         all post: GameState | reachable[post, gs, next] implies {
             all ep: EndPile | gs.endPileTop[ep] = post.endPileTop[ep]
             all p: Pile | gs.columnTop[p] = post.columnTop[p]
             
@@ -751,6 +751,15 @@ pred validMove[pre: GameState, post: GameState] {
 pred validGame {
     twelve_wellformed
     twelve_init[Solitaire.init] 
+
+    all disj gs1, gs2: GameState | {
+        some gs1.deckTop != gs2.deckTop or
+        some gs1.discardTop != gs2.discardTop or
+        (some p: Pile | gs1.columnTop[p] != gs2.columnTop[p]) or
+        (some ep: EndPile | gs1.endPileTop[ep] != gs2.endPileTop[ep]) or
+        (some c: Card | gs1.cardBelow[c] != gs2.cardBelow[c])
+    }
+
     all gs: GameState | some Solitaire.next[gs] implies validMove[gs, Solitaire.next[gs]]
 }
 

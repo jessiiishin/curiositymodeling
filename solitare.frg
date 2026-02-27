@@ -723,7 +723,7 @@ pred winnable {
 
 pred validMove[pre: GameState, post: GameState] {
     not gameComplete[pre]
-    // pre != post
+    pre != post
     
     some c, c2: Card, p, p2: Pile, ep: EndPile | {
         drawCard[pre, post] or

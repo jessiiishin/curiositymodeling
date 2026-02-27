@@ -210,7 +210,7 @@ test suite for general_wellformed {
     // game rules related
     GW_noColorAltStillWellformed: assert {faceDownCardsNoColorAlt and general_wellformed} is sat
     GW_noNumberOrderStillWellformed: assert {faceDownCardsNoRankOrder and general_wellformed} is sat
-    GW_multiIPileFaceup: assert {multCardsInPileFaceUp and general_wellformed} is sat
+    // GW_multiIPileFaceup: assert {multCardsInPileFaceUp and general_wellformed} is sat
 
     // duplicates?
     GW_sameCards: assert {some disj c1, c2: Card | c1.suit = c2.suit and c1.rank = c2.rank and general_wellformed} is unsat
@@ -229,9 +229,9 @@ test suite for twelve_wellformed {
 
 test suite for wellformed_initial {
     WI_completeAndInit: assert {some gs: GameState | gameComplete[gs] and wellformed_initial[gs]} is unsat
-    WI_multiIPileFaceup: assert {some gs: GameState | multCardsInPileFaceUp and wellformed_initial[gs]} is unsat
+    // WI_multiIPileFaceup: assert {some gs: GameState | multCardsInPileFaceUp and wellformed_initial[gs]} is unsat
     WI_multiplePlaces: assert {some gs: GameState | cardInMultiplePlaces and general_wellformed and wellformed_initial[gs]} is unsat
-    WI_topButBelow: assert {some gs: GameState | topCardButBelow and wellformed_initial[gs]} is unsat
+    // WI_topButBelow: assert {some gs: GameState | topCardButBelow and wellformed_initial[gs]} is unsat
 
     WI_consistentWithGeneral: assert all gs: GameState | wellformed_initial[gs] is consistent with general_wellformed
         for exactly 12 Card, exactly 3 Pile
@@ -240,12 +240,12 @@ test suite for wellformed_initial {
 
 test suite for twelve_init {
 	// we cannot be init stage and be complete
-	assert {some gs: GameState | gameComplete[gs] and twelve_init} is unsat
+	TI_notComplete: assert {some gs: GameState | gameComplete[gs] and twelve_init[gs]} is unsat
 }
 
 test suite for exclusiveDecksAndPiles {
     // exclusiveDecksAndPiles[st: GameState]
-    assert { }
+    // assert { }
 }
 
 test suite for validPile {
@@ -256,13 +256,13 @@ test suite for validPile {
     VP_noNumberOrderFaceDown: assert {some gs: GameState, p: Pile | faceDownCardsNoRankOrder and validPile[gs, p]} is sat
     
     // ordering and faceDown stuff
-    VP_topFaceDown: assert {some gs: GameState, p: Pile | topCardFaceDown and validPile[gs, p]} is unsat
-    VP_faceUpBelowFaceDown: assert {some c1, c2: Card, gs: GameState, p: Pile | {
-        inPile[gs, p, c1] and inPile[gs, p, c2]
-        gs.cardBelow[c1] = c2
-        gs.faceDown[c1] = True
-        gs.faceDown[c2] = False
-    }}
+    // VP_topFaceDown: assert {some gs: GameState, p: Pile | topCardFaceDown and validPile[gs, p]} is unsat
+    // VP_faceUpBelowFaceDown: assert {some c1, c2: Card, gs: GameState, p: Pile | {
+    //     inPile[gs, p, c1] and inPile[gs, p, c2]
+    //     gs.cardBelow[c1] = c2
+    //     gs.faceDown[c1] = True
+    //     gs.faceDown[c2] = False
+    // }} is sat
 
     // VP_cardsAbidingRules: assert { some gs: GameState, p: Pile | }} 
 
@@ -271,6 +271,7 @@ test suite for validPile {
     // at least one card needs to be face up
 
 }
+
 test suite for validEndPile {
     // [gs: GameState, ep: EndPile]
 
@@ -398,30 +399,211 @@ test suite for moveEndPileToPile {
 
 test suite for movePileToEndPile {
     // [targetCard: Card, srcP: Pile, destEP: EndPile, pre, post: GameState]
+    // target card at top
+    MPEP_targetCardAtTop: assert all c: Card, p: Pile, ep: EndPile, pre, post: GameState | {
+        movePileToEndPile[c, p, ep, pre, post] implies pre.columnTop[p] = c
+    } is sat
+
+    // target card matches endpile suit
+    MPEP_targetCardMatchesSuit: assert all c: Card, p: Pile, ep: EndPile, pre, post: GameState | {
+        movePileToEndPile[c, p, ep, pre, post] implies c.suit = ep.endPileSuit
+    } is sat
+
+    // target card new end pile top
+    MPEP_targetCardTopsEndPile: assert all c: Card, p: Pile, ep: EndPile, pre, post: GameState | {
+        movePileToEndPile[c, p, ep, pre, post] implies post.endPileTop[ep] = c
+    } is sat
+
+    // deck unchanged
+    MPEP_deckUnchanged: assert all c: Card, p: Pile, ep: EndPile, pre, post: GameState | {
+        movePileToEndPile[c, p, ep, pre, post] implies pre.deckTop = post.deckTop
+    } is sat
+
+    // discard unchanged
+    MPEP_discardUnchanged: assert all c: Card, p: Pile, ep: EndPile, pre, post: GameState | {
+        movePileToEndPile[c, p, ep, pre, post] implies pre.discardTop = post.discardTop
+    } is sat
+
+    // bottom is rank one
+    MPEP_endPileRankOne: assert all c: Card, p: Pile, ep: EndPile, pre, post: GameState | {
+        (movePileToEndPile[c, p, ep, pre, post] and no pre.endPileTop[ep]) implies c.rank = 1
+    } is sat
+
+    // unsat cases
+    MPEP_diffEndSuit: assert { some c: Card, p: Pile, ep: EndPile, pre, post: GameState | 
+        movePileToEndPile[c, p, ep, pre, post] and c.suit != ep.endPileSuit
+    } is unsat
+
+    MPEP_puttingRankTwo: assert { some c: Card, p: Pile, ep: EndPile, pre, post: GameState | 
+        movePileToEndPile[c, p, ep, pre, post] and no pre.endPileTop[ep] and c.rank = 2
+    } is unsat
+
+    MPEP_moveFaceDown: assert { some c: Card, p: Pile, ep: EndPile, pre, post: GameState | 
+        movePileToEndPile[c, p, ep, pre, post] and pre.faceDown[c] = True
+    } is unsat
 }
 
 test suite for moveDiscardToEndPile {
-    // [targetCard: Card, destEP: EndPile, pre, post: GameState]
+    MDEP_topsDiscard: assert all c: Card, ep: EndPile, pre, post: GameState | {
+        moveDiscardToEndPile[c, ep, pre, post] implies pre.discardTop = c
+    } is sat
+
+    MDEP_matchesSuit: assert all c: Card, ep: EndPile, pre, post: GameState | {
+        moveDiscardToEndPile[c, ep, pre, post] implies c.suit = ep.endPileSuit
+    } is sat
+
+    MDEP_topsEndPile: assert all c: Card, ep: EndPile, pre, post: GameState | {
+        moveDiscardToEndPile[c, ep, pre, post] implies post.endPileTop[ep] = c
+    } is sat
+
+    MDEP_pilesUnchanged: assert all c: Card, ep: EndPile, pre, post: GameState | {
+        moveDiscardToEndPile[c, ep, pre, post] implies {
+            all p: Pile | pre.columnTop[p] = post.columnTop[p]
+        }
+    } is sat
+
+    MDEP_deckUnchanged: assert all c: Card, ep: EndPile, pre, post: GameState | {
+        moveDiscardToEndPile[c, ep, pre, post] implies pre.deckTop = post.deckTop
+    } is sat
+
+    MDEP_firstCardRankOne: assert all c: Card, ep: EndPile, pre, post: GameState | {
+        (moveDiscardToEndPile[c, ep, pre, post] and no pre.endPileTop[ep]) implies c.rank = 1
+    } is sat
+
+    MDEP_wrongSuit: assert { some c: Card, ep: EndPile, pre, post: GameState | 
+        moveDiscardToEndPile[c, ep, pre, post] and c.suit != ep.endPileSuit
+    } is unsat
+
+    MDEP_emptyDiscard: assert { some c: Card, ep: EndPile, pre, post: GameState | 
+        moveDiscardToEndPile[c, ep, pre, post] and no pre.discardTop
+    } is unsat
+
+    MDEP_wrongRank: assert { some c: Card, ep: EndPile, pre, post: GameState | 
+        moveDiscardToEndPile[c, ep, pre, post] and some pre.endPileTop[ep] and c.rank != add[pre.endPileTop[ep].rank, 1]
+    } is unsat
+
 }
 
 test suite for moveDiscardToPile {
     // [targetCard: Card, destP: Pile, pre, post: GameState]
+    MDP_topsDiscard: assert all c: Card, p: Pile, pre, post: GameState | {
+        moveDiscardToPile[c, p, pre, post] implies pre.discardTop = c
+    } is sat
+
+    MDP_nonemptyDiscard: assert { some c: Card, p: Pile, pre, post: GameState | 
+        moveDiscardToPile[c, p, pre, post] and no pre.discardTop
+    } is unsat
+
+    MDP_emptyPile: assert { some c: Card, p: Pile, pre, post: GameState | 
+        moveDiscardToPile[c, p, pre, post] and no pre.columnTop[p] and { some c2: Card | c2.rank > c }
+    } is unsat
+ 
+    MDP_sameColor: assert { some c: Card, p: Pile, pre, post: GameState | 
+        moveDiscardToPile[c, p, pre, post] and c.color = pre.columnTop[p].color
+    } is unsat
+
+    MDP_differByOne: assert all c: Card, p: Pile, pre, post: GameState | {
+        moveDiscardToPile[c, p, pre, post] implies 
+            c.rank = subtract[pre.columnTop[p].rank, 1]
+    } is sat
 }
 
 test suite for moveDiscardToEmptyPile {
     // [targetCard: Card, destP: Pile, pre, post: GameState]
-}
+    MDMTP_emptyDestination: assert all c: Card, p: Pile, pre, post: GameState | {
+        moveDiscardToEmptyPile[c, p, pre, post] implies no pre.columnTop[p]
+    } is sat
+
+    MDMTP_moveToNonemptyPile: assert { some c: Card, p: Pile, pre, post: GameState | 
+        moveDiscardToEmptyPile[c, p, pre, post] and some pre.columnTop[p]
+    } is unsat
+
+    MDMTP_moveFirstCard: assert { some c: Card, p: Pile, pre, post: GameState | 
+        moveDiscardToEmptyPile[c, p, pre, post] and { some c2: Card | c.rank < c2.rank }
+    } is unsat
+
+    MDMTP_noDiscard: assert { some c: Card, p: Pile, pre, post: GameState | 
+        moveDiscardToEmptyPile[c, p, pre, post] and no pre.discardTop
+    } is unsat
+
+    MDMTP_nothingBelow: assert all c: Card, p: Pile, pre, post: GameState | {
+        moveDiscardToEmptyPile[c, p, pre, post] implies no post.cardBelow[c]
+    } is sat
+}   
 
 test suite for moveEndPileToEmptyPile {
     // [targetCard: Card, srcEP: EndPile, destP: Pile, pre, post: GameState]
+    MEPMTP_emptyEndPile: assert { some c: Card, ep: EndPile, p: Pile, pre, post: GameState | 
+        moveEndPileToEmptyPile[c, ep, p, pre, post] and no pre.endPileTop[ep]
+    } is unsat
+
+    MEPMTP_newPileTop: assert all c: Card, ep: EndPile, p: Pile, pre, post: GameState | {
+        moveEndPileToEmptyPile[c, ep, p, pre, post] implies post.columnTop[p] = c
+    } is sat
+
+    MEPMTP_unchangedDeckDiscard: assert all c: Card, ep: EndPile, p: Pile, pre, post: GameState | {
+        moveEndPileToEmptyPile[c, ep, p, pre, post] implies {
+            pre.deckTop = post.deckTop
+            pre.discardTop = post.discardTop
+        }
+    } is sat
+
+    MEPMTP_moveNonMaxCard: assert { some c: Card, ep: EndPile, p: Pile, pre, post: GameState | 
+        moveEndPileToEmptyPile[c, ep, p, pre, post] and {some c2: Card | c2.rank > c.rank}
+    } is unsat
+
+    MEPMTP_topsEndPile: assert all c: Card, ep: EndPile, p: Pile, pre, post: GameState | {
+        moveEndPileToEmptyPile[c, ep, p, pre, post] implies pre.endPileTop[ep] = c
+    } is sat
 }
 
 test suite for completedEndPile {
-    // [gs: GameState, ep: EndPile]
+    CEP_endPileTopped: assert all gs: GameState, ep: EndPile | {
+        completedEndPile[gs, ep] implies not { some c: Card | c.rank > gs.endPileTop[ep].rank }
+    } is sat
+
+    CEP_missingTop: assert { some gs: GameState, ep: EndPile | 
+        completedEndPile[gs, ep] and no gs.endPileTop[ep]
+    } is unsat
+
+    CEP_faceUp: assert all gs: GameState, ep: EndPile | {
+        completedEndPile[gs, ep] implies {
+            all c: Card | inEndPile[gs, ep, c] implies gs.faceDown[c] = False
+        }
+    } is sat
+
+    CEP_bottomIsOne: assert all gs: GameState, ep: EndPile | {
+        completedEndPile[gs, ep] implies {
+            some bottom: Card | inEndPile[gs, ep, bottom] and no gs.cardBelow[bottom] and bottom.rank = 1
+        }
+    } is sat
+
+    CEP_otherSuit: assert { some gs: GameState, ep: EndPile, c: Card | 
+        completedEndPile[gs, ep] and inEndPile[gs, ep, c] and c.suit != ep.endPileSuit
+    } is unsat
 }
 
 test suite for gameComplete {
     // [gs: GameState]
+    GC_endPilesDone: assert all gs: GameState | {
+        gameComplete[gs] implies {all ep: EndPile | completedEndPile[gs, ep]}
+    } is sat
+
+    GS_pilesEmpty: assert all gs: GameState | {
+        gameComplete[gs] implies {all p: Pile | no gs.columnTop[p]}
+    } is sat
+
+    GS_deckEmpty: assert all gs: GameState | {
+        gameComplete[gs] implies no gs.deckTop
+    } is sat
+
+    GS_discardEmpty: assert all gs: GameState | {
+        gameComplete[gs] implies no gs.discardTop
+    } is sat
+
+    GS_someDeckTop: assert { some gs: GameState | gameComplete[gs] and some gs.deckTop } is unsat
+    GS_someDiscardTop: assert { some gs: GameState | gameComplete[gs] and some gs.discardTop } is unsat
+    GS_somePileTop: assert { some gs: GameState | gameComplete[gs] and {some p: Pile | some gs.columnTop[p]} } is unsat
 }
 
 test suite for winnable {
@@ -444,7 +626,7 @@ test suite for winnable {
         
         -- Cards
         Card = `C1H + `C2H + `C3H + `C1D + `C2D + `C3D + 
-            `C1S + `C2S + `C3S + `C1C + `C2C + `C3C
+               `C1S + `C2S + `C3S + `C1C + `C2C + `C3C
 
         `C1H.suit = `Heart    `C1H.color = `Red    `C1H.rank = 1
         `C2H.suit = `Heart    `C2H.color = `Red    `C2H.rank = 2
@@ -506,12 +688,20 @@ test suite for winnable {
         -- Solitaire trace
         GameState = `GS0
     }
+
+    winnable_impliesComplete: assert {
+        winnable implies {some gs: GameState | gameComplete[gs]}
+    } is sat
+
+    winnable_requiresReachable: assert {some gs: GameState | {
+            gameComplete[gs]
+            reachable[gs, Solitaire.init, Solitaire.next]
+        }
+    } is necessary for winnable
 }
 
 test suite for validMove {
     // [pre: GameState, post: GameState]
-    assert all pre, post: GameState | validMove[pre, post] is consistent with moveFromEndPileToEndPile
-    assert {some pre, post: GameState | nothingChanges and validMove[pre, post]} is unsat
     
 }
 

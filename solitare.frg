@@ -699,13 +699,12 @@ Game properties predicates
 */
 
 pred gameComplete[gs: GameState] {
-    all c: Card | gs.faceDown[c] = False or (
-        (all ep: EndPile | completedEndPile[gs, ep]) and
-        (all p: Pile | no gs.columnTop[p]) and
-        (no gs.deckTop) and
-        (no gs.discardTop)
-    )
+    all ep: EndPile | completedEndPile[gs, ep]
+    all p: Pile | no gs.columnTop[p]
+    no gs.deckTop
+    no gs.discardTop
 }
+
 
 pred stayComplete {
     all gs: GameState | gameComplete[gs] implies {
@@ -891,6 +890,22 @@ test_moveDiscardToEndPile: run {
     some pre, post: GameState, c: Card, ep: EndPile | 
         moveDiscardToEndPile[c, ep, pre, post]
 } for exactly 2 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
+for {next is linear}
+
+
+valid_not_winnable: run {
+    validGame
+    not winnable
+} for exactly 12 Card, exactly 3 Pile, exactly 4 EndPile, 20 GameState
+for {next is linear}
+
+stuck: run {
+    validGame
+    some gs: GameState | {
+        not gameComplete[gs]
+        no post: GameState | validMove[gs, post]
+    }
+} for exactly 12 Card, exactly 3 Pile, exactly 4 EndPile, 10 GameState
 for {next is linear}
 
 

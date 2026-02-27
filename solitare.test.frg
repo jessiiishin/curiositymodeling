@@ -45,8 +45,8 @@ pred illegalCards {
 pred cardInMultPiles {
     some gs: GameState, c: Card | {
         some disj p1, p2: Pile | {
-            cardInPile[c, gs, p1]
-            cardInPile[c, gs, p2]
+            inPile[c, gs, p1]
+            inPile[c, gs, p2]
         }
     }
 }
@@ -55,25 +55,25 @@ pred cardInMultPiles {
 pred cardInMultipleEndPiles {
     some gs: GameState, c: Card | {
         some disj ep1, ep2: EndPile | {
-            cardInEndPile[c, gs, ep1]
-            cardInEndPile[c, gs, ep2]
+            inEndPile[c, gs, ep1]
+            inEndPile[c, gs, ep2]
         }
     }
 }
 
 pred cardInDeckAndDiscard {
     some gs: GameState, c: Card | {
-        some dis: Discard | cardInDiscard[c, gs, dis]
-        some deck: Deck | cardInDeck[c, gs, deck]
+        some dis: Discard | inDiscard[c, gs, dis]
+        some deck: Deck | inDeck[c, gs, deck]
     }
 }
 
 // how to make it more efficient?
 pred cardInMultiplePlaces {
     some gs: GameState, c: Card, p: Pile, ep: EndPile, d: Deck | {
-        (cardInPile[c, gs, p] and cardInEndPile[c, gs, ep]) or 
-        (cardInPile[c, gs, p] and cardInDeck[c, gs, d]) or 
-        (cardInEndPile[c, gs, ep] and cardInDeck[c, gs, d]) 
+        (inPile[c, gs, p] and inEndPile[c, gs, ep]) or 
+        (inPile[c, gs, p] and inDeck[c, gs, d]) or 
+        (inEndPile[c, gs, ep] and inDeck[c, gs, d]) 
     }
 }
 
@@ -88,14 +88,14 @@ pred topCardFaceDown {
 
 pred cardFaceDownInEndPile {
     some gs: GameState, c: Card, ep: EndPile | {
-        cardInEndPile[c, gs, ep]
+        inEndPile[c, gs, ep]
         gs.faceDown[c] = True
     }
 }
 
 pred cardFaceDownInDiscard {
     some gs: GameState, c: Card, dis: Discard | {
-        cardInDiscard[c, gs, dis]
+        inDiscard[c, gs, dis]
         gs.faceDown[c] = True
     }
 }
@@ -118,7 +118,7 @@ pred topCardButBelow {
 // multiple cards are face up in a state that's not initial
 pred multCardsInPileFaceUp {
     some gs: GameState, p: Pile | {
-        #{c: Card | cardInPile[c, gs, p] and
+        #{c: Card | inPile[c, gs, p] and
             gs.faceDown[c] = False} > 1
     }
 }

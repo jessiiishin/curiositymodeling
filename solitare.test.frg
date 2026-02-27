@@ -162,6 +162,30 @@ pred faceDownCardsNoRankOrder {
     }
 }
 
+// all cards should be somewhere
+pred cardsAreSomewhere {
+    some gs: GameState | {
+        all c: Card | {
+            (some p: Pile | inPile[gs, p, c]) or
+            (some ep: EndPile | inEndPile[gs, ep, c]) or
+            inDeck[gs, c] or
+            inDiscard[gs, c]
+        }
+    } 
+}
+
+// card that's not part of any stack
+pred lostCard {
+    some gs: GameState | {
+        some c: Card | {
+            (all p: Pile | not inPile[gs, p, c]) and
+            (all ep: EndPile | not inEndPile[gs, ep, c]) and
+            not inDeck[gs, c] and
+            not inDiscard[gs, c]
+        }
+    }
+}
+
 /* 
 --------------------------------------------------
     Suites for wellformed & card memberships
@@ -169,18 +193,28 @@ pred faceDownCardsNoRankOrder {
 */
 
 test suite for general_wellformed {
+    // basic card logic
     GW_noCycles: assert {cyclicCards and general_wellformed} is unsat
     GW_unevenSuite: assert {unevenDistributionOfCardsInSuit and general_wellformed} is unsat
     GW_illegalCards: assert {illegalCards and general_wellformed} is unsat
+    GW_topButBelow: assert {topCardButBelow and general_wellformed} is unsat
+
+    // card membership
     GW_notExclusiveDeckDiscard: assert {cardInDeckAndDiscard and general_wellformed} is unsat
     GW_notExclusiveEndPile: assert {cardInMultipleEndPiles and general_wellformed} is unsat
     GW_notExclusive: assert {cardInMultiplePlaces and general_wellformed} is unsat
+    GW_exclusivity: assert cardsAreSomewhere is necessary for general_wellformed
+    GW_lostCard: assert {lostCard and general_wellformed} is unsat
+
+    // game rules related
     GW_noColorAltStillWellformed: assert {faceDownCardsNoColorAlt and general_wellformed} is sat
     GW_noNumberOrderStillWellformed: assert {faceDownCardsNoRankOrder and general_wellformed} is sat
+    GW_multiIPileFaceup: assert {multCardsInPileFaceUp and general_wellformed} is sat
 
+    // duplicates?
     GW_sameCards: assert {some disj c1, c2: Card | c1.suit = c2.suit and c1.rank = c2.rank and general_wellformed} is unsat
     GW_sameSuit: assert {some disj c1, c2: Card | c1.suit = c2.suit and general_wellformed} is sat for exactly 12 Card
-    GW_sameRank: assert {some disj c1, c2: Card | c1.rank = c2.rank and general_wellformed} is sat
+    GW_sameRank: assert {some disj c1, c2: Card | c1.rank = c2.rank and general_wellformed} is sat for exactly 12 Card
     
     GW_dontNeedTwelveWellformed: assert {not twelve_wellformed and general_wellformed} is sat
 }
@@ -190,17 +224,23 @@ test suite for twelve_wellformed {
     TW_consistentWithGeneral: assert twelve_wellformed is consistent with general_wellformed
     TW_cardInRange: assert {some c: Card | c.rank = 1 or c.rank = 2 or c.rank = 3 and twelve_wellformed} is sat
     TW_cardRankZero: assert {some c: Card | c.rank = 0 and twelve_wellformed} is unsat
-
 }
 
 test suite for wellformed_initial {
-    WI_consistentWithGeneral: assert general_wellformed is consistent with wellformed_initial
+    assert {some gs: GameState | gameComplete[gs] and wellformed_initial} is unsat
+    assert {cyclicCards and wellformed_initial} is unsat
+    WI_multiIPileFaceup: assert {multCardsInPileFaceUp and wellformed_initial} is unsat
+    WI_multiplePlaces: assert {cardInMultiplePlaces and wellformed_initial} is unsat
+    WI_topButBelow: assert {topCardButBelow and wellformed_initial} is unsat
+
+    // WI_consistentWithGeneral: assert general_wellformed is consistent with wellformed_initial
 
 }
 
 test suite for twelve_init {
 	// we cannot be init stage and be complete
-	assert some gs: GameState | gameComplete[gs] is inconsistent with twelve_init
+	assert {some gs: GameState | gameComplete[gs] and twelve_init} is unsat
+    
 }
 
 test suite for exclusiveDecksAndPiles {
@@ -307,6 +347,66 @@ pred nothingChanges[pre, post: GameState] {
     all c: Card | pre.faceDown[c] = post.faceDown[c]
 }
 
+pred moveFromEndPileToEndPile {
+    some pre, post: GameState | {
+        some disj ep1, ep2: EndPile | pre.endPileTop[ep1] != post.endPileTop[ep2]
+    }
+}
+
+// two or more cards turned facedown=False
+pred twoCardsTurnedFaceUp {
+    some disj pre, post: GameState | {
+        some disj c1, c2: Card | {
+            pre.faceDown[c1] = True
+            post.faceDown[c1] = False
+
+            pre.faceDown[c2] = True
+            post.faceDown[c2] = False
+        }
+    }
+}
+
+// a card that was face up became facedown = True
+pred faceUpToDown {
+    some disj pre, post: GameState | {
+        some c: Card | {
+            pre.faceDown[c] = False
+            post.faceDown[c] = True
+        }
+    }
+}
+
+// order of pile changed when card is faceDown
+pred faceDownOrderChanged {
+    some disj pre, post: GameState | {
+        some c: Card | {
+            pre.faceDown[c] = True
+            post.faceDown[c] = True
+            pre.cardBelow[c] != post.cardBelow[c]
+        }
+    }
+}
+
+// unchanged stacks of cards stay the same before and after (contents, order, top)
+pred unchangedPilesConsistent[changed: Pile] {
+    
+}
+
+// two or more cards moved at once
+pred 
+
+// a card that was not supposed to be turned face up became face up (not at top or not revealed by deck)
+
+
+// somehow the color alternation is not correct after a move
+// trying to move cards from empty stacks should not be possible
+
+// nothing happened but didn't lose (something should happen at every move)
+
+// not all cards were face up but somehow won
+// not all endPiles are complete but somehow won
+// not all piles are empty but somehow won
+
 
 /* 
 --------------------------------------------------
@@ -316,29 +416,10 @@ pred nothingChanges[pre, post: GameState] {
 
 // card moved to invalid position where it's not wellformed anymore
 // card moved from one endpile to another
-pred moveFromEndPileToEndPile {
-    some pre, post: GameState | {
-        some disj ep1, ep2: EndPile | pre.endPileTop[ep1] != post.endPileTop[ep2]
-    }
-}
 
 test suite for validMove {
     assert all pre, post: GameState | validMove[pre, post] is consistent with moveFromEndPileToEndPile
+    assert {some pre, post: GameState | nothingChanges and validMove[pre, post]} is unsat
+    
 }
 
-// two or more cards moved at once
-// two or more cards turned facedown=False
-// a card that was face up became facedown = True
-
-
-// order of pile changed (or endpile, or deck)
-// unchanged stacks of cards stay the same before and after (contents, order, top)
-// a card that was not supposed to be turned face up became face up (not at top or not revealed by deck)
-// somehow the color alternation is not correct after a move
-// trying to move cards from empty stacks should not be possible
-
-// nothing happened but didn't lose (something should happen at every move)
-
-// not all cards were face up but somehow won
-// not all endPiles are complete but somehow won
-// not all piles are empty but somehow won

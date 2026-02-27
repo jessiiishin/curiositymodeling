@@ -175,7 +175,8 @@ test suite for general_wellformed {
     GW_notExclusiveDeckDiscard: assert {cardInDeckAndDiscard and general_wellformed} is unsat
     GW_notExclusiveEndPile: assert {cardInMultipleEndPiles and general_wellformed} is unsat
     GW_notExclusive: assert {cardInMultiplePlaces and general_wellformed} is unsat
-    GW_noColorAltStillWellformed: assert {}
+    GW_noColorAltStillWellformed: assert {faceDownCardsNoColorAlt and general_wellformed} is sat
+    GW_noNumberOrderStillWellformed: assert {faceDownCardsNoRankOrder and general_wellformed} is sat
 
     GW_sameCards: assert {some disj c1, c2: Card | c1.suit = c2.suit and c1.rank = c2.rank and general_wellformed} is unsat
     GW_sameSuit: assert {some disj c1, c2: Card | c1.suit = c2.suit and general_wellformed} is sat for exactly 12 Card
@@ -193,20 +194,18 @@ test suite for twelve_wellformed {
 }
 
 test suite for wellformed_initial {
-    // WI_consistentWithGeneral: assert general_wellformed is consistent with wellformed_initial
+    WI_consistentWithGeneral: assert general_wellformed is consistent with wellformed_initial
 
 }
 
 test suite for twelve_init {
 	// we cannot be init stage and be complete
-    TI_notComplete: assert { some gs: GameState | gameComplete[gs] and twelve_init[gs] } is unsat
+	assert some gs: GameState | gameComplete[gs] is inconsistent with twelve_init
 }
 
 test suite for exclusiveDecksAndPiles {
     
 }
-
-
 
 
 /* 
@@ -233,9 +232,21 @@ pred nothingChanges[pre, post: GameState] {
 
 // card moved to invalid position where it's not wellformed anymore
 // card moved from one endpile to another
+pred moveFromEndPileToEndPile {
+    some pre, post: GameState | {
+        some disj ep1, ep2: EndPile | pre.endPileTop[ep1] != post.endPileTop[ep2]
+    }
+}
+
+test suite for validMove {
+    assert all pre, post: GameState | validMove[pre, post] is consistent with moveFromEndPileToEndPile
+}
+
 // two or more cards moved at once
 // two or more cards turned facedown=False
 // a card that was face up became facedown = True
+
+
 // order of pile changed (or endpile, or deck)
 // unchanged stacks of cards stay the same before and after (contents, order, top)
 // a card that was not supposed to be turned face up became face up (not at top or not revealed by deck)

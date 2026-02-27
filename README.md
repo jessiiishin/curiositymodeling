@@ -4,8 +4,6 @@
 
 ---
 
-Project Objective: What are you trying to model? Include a brief description that would give someone unfamiliar with the topic a basic understanding of your goal.
-
 ## Project Objective
 
 The objective of this model is to model Klondike (solitaire). Klondike is a type of solitaire game
@@ -21,7 +19,7 @@ other only if they are alternating colors and maintaining a sequential, descendi
 are no moves you can make, you lose the game.
 
 We explored if there are specific deals of the cards that makes the game inherently unbeatable,
-using a smaller game with only 12 cards total.
+how to model a game that's winnable, using a smaller game with only 12 cards total.
 
 ## Model Design and Visualization
 

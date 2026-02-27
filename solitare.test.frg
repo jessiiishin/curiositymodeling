@@ -138,8 +138,8 @@ test suite for general_wellformed {
     GW_notExclusive: assert {cardInMultiplePlaces and general_wellformed} is unsat
 
     GW_sameCards: assert {some disj c1, c2: Card | c1.suit = c2.suit and c1.rank = c2 rank and general_wellformed} is unsat
-    GW_sameSuit: assert {some disj c1, c2: Card | c1.suit = c2.suit} is sat
-    GW_sameRank: assert {some disj c1, c2: Card | c1.rank = c2.rank} is sat
+    GW_sameSuit: assert {some disj c1, c2: Card | c1.suit = c2.suit and general_wellformed} is sat
+    GW_sameRank: assert {some disj c1, c2: Card | c1.rank = c2.rank and general_wellformed} is sat
 
     GW_dontNeedTwelveWellformed: assert {not twelveWellformed and general_wellformed} is sat
 }
@@ -174,7 +174,9 @@ test suite for twelve_init {
 */
 
 pred nothingChanges {
-    
+    some pre, post: GameState | {
+        all p: Pile, c: Card | 
+    }
 }
 
 

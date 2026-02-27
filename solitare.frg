@@ -259,23 +259,22 @@ pred wellformed_initial[gs: GameState] {
     }
 }
 
-pred twelve_init {
-    some gs: GameState | {
-        some disj p1, p2, p3: Pile | {
-            no gs.cardBelow[gs.columnTop[p1]]
+pred twelve_init[gs: GameState] {
+    some disj p1, p2, p3: Pile | {
+        no gs.cardBelow[gs.columnTop[p1]]
 
-            (some gs.cardBelow[gs.columnTop[p2]] and 
-                no gs.cardBelow[gs.cardBelow[gs.columnTop[p2]]])
+        (some gs.cardBelow[gs.columnTop[p2]] and 
+            no gs.cardBelow[gs.cardBelow[gs.columnTop[p2]]])
 
-            (some gs.cardBelow[gs.columnTop[p3]] and 
-                some gs.cardBelow[gs.cardBelow[gs.columnTop[p3]]] and 
-                no gs.cardBelow[gs.cardBelow[gs.cardBelow[gs.columnTop[p3]]]])
-        }
-
-        #{c: Card | reachable[c, gs.deckTop, gs.cardBelow]} = 5
-
-        wellformed_initial[gs]
+        (some gs.cardBelow[gs.columnTop[p3]] and 
+            some gs.cardBelow[gs.cardBelow[gs.columnTop[p3]]] and 
+            no gs.cardBelow[gs.cardBelow[gs.cardBelow[gs.columnTop[p3]]]])
     }
+
+    #{c: Card | reachable[c, gs.deckTop, gs.cardBelow]} = 5
+
+    wellformed_initial[gs]
+    
 }
 
 pred completedEndPile[gs: GameState, ep: EndPile] {
@@ -731,6 +730,7 @@ pred winnable {
 pred validMove[pre: GameState, post: GameState] {
     twelve_wellformed
     not gameComplete[pre]
+    pre != post
     
     some c, c2: Card, p, p2: Pile, ep: EndPile | {
         drawCard[pre, post] or
@@ -746,6 +746,15 @@ pred validMove[pre: GameState, post: GameState] {
     }
 }
 
+pred validGame {
+    twelve_init[Solitaire.init] 
+    all gs: GameState | some Solitaire.next[gs] implies validMove[gs, Solitaire.next[gs]]
+}
+
+valid_and_winnable: run {
+    winnable
+    validGame
+} for exactly 12 Card, exactly 3 Pile
 
 one_move_pile_to_pile: run {
     twelve_wellformed
@@ -760,9 +769,9 @@ one_move_pile_to_pile: run {
 
 init_move_pile_to_pile: run {
     twelve_wellformed
-    twelve_init
-
+    
     some disj pre, post: GameState | {
+        twelve_init[pre]
         not gameComplete[pre]
         some c1, c2: Card, p1, p2: Pile | {
             movePileToPile[c1, c2, p1, p2, pre, post]
@@ -776,7 +785,7 @@ twelve_cards: run {
 
 twelve_cards_wellformed_deal: run {
     twelve_wellformed
-    twelve_init
+    some gs: GameState | twelve_init[gs]
 } for exactly 12 Card, exactly 1 GameState, exactly 3 Pile, exactly 4 EndPile, exactly 1 Deck
 
 

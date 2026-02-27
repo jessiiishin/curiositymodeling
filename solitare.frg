@@ -685,7 +685,7 @@ Game properties predicates
 
 pred completedEndPile[gs: GameState, ep: EndPile] {
     some gs.endPileTop[ep]
-    gs.endPileTop[ep].rank = 3 
+    all c: Card | gs.endPileTop[ep].rank >= c.rank
     validEndPile[gs, ep]
 }
 
@@ -742,14 +742,13 @@ pred validMove[pre: GameState, post: GameState] {
 pred validGame {
     twelve_init[Solitaire.init] 
 
-    all disj gs1, gs2: GameState | {
-    not (
-            gs1.deckTop = gs2.deckTop and
-            gs1.discardTop = gs2.discardTop and
-            (all p: Pile | gs1.columnTop[p] = gs2.columnTop[p]) and
-            (all ep: EndPile | gs1.endPileTop[ep] = gs2.endPileTop[ep]) and
-            (all c: Card | gs1.cardBelow[c] = gs2.cardBelow[c])
-        )
+    all disj gs1, gs2: GameState | not {
+        gs1.deckTop = gs2.deckTop and
+        gs1.discardTop = gs2.discardTop and
+        (all p: Pile | gs1.columnTop[p] = gs2.columnTop[p]) and
+        (all ep: EndPile | gs1.endPileTop[ep] = gs2.endPileTop[ep]) and
+        (all c: Card | gs1.cardBelow[c] = gs2.cardBelow[c]) and
+        (all c: Card | gs1.faceDown[c] = gs2.faceDown[c])
     }
 
     all gs: GameState | some Solitaire.next[gs] implies validMove[gs, Solitaire.next[gs]]

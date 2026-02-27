@@ -187,6 +187,25 @@ pred lostCard {
     }
 }
 
+pred moreThanOneFaceUpInPileButNotConsecutive {
+    some gs: GameState, p: Pile | {
+        some disj c1, c2: Card | {
+            inPile[gs, p, c1]
+            inPile[gs, p, c2]
+            gs.cardBelow[c1] != gs.cardBelow[c2]
+            gs.cardBelow[c2] != gs.cardBelow[c1] 
+        }
+    }
+}
+
+pred allCardFaceUpInEndP {
+    all gs: GameState, ep: EndPile {
+        all c: Card | inEndPile[gs, ep, c] implies {
+            gs.faceDown[c] = False
+        }
+    }
+}
+
 /* 
 --------------------------------------------------
     Suites for wellformed & card memberships
@@ -206,11 +225,6 @@ test suite for general_wellformed {
     GW_notExclusive: assert {cardInMultiplePlaces and general_wellformed} is unsat
     GW_exclusivity: assert cardsAreSomewhere is necessary for general_wellformed
     GW_lostCard: assert {lostCard and general_wellformed} is unsat
-
-    // game rules related
-    GW_noColorAltStillWellformed: assert {faceDownCardsNoColorAlt and general_wellformed} is sat
-    GW_noNumberOrderStillWellformed: assert {faceDownCardsNoRankOrder and general_wellformed} is sat
-    GW_multiIPileFaceup: assert {multCardsInPileFaceUp and general_wellformed} is sat
 
     // duplicates?
     GW_sameCards: assert {some disj c1, c2: Card | c1.suit = c2.suit and c1.rank = c2.rank and general_wellformed} is unsat
@@ -263,21 +277,47 @@ test suite for validPile {
         gs.faceDown[c1] = True
         gs.faceDown[c2] = False
     }}
+    VP_multiPileFaceUpNotConsecutive: assert {moreThanOneFaceUpInPileButNotConsecutive and validPile} is unsat
+    VP_multiPileFaceup: assert {multCardsInPileFaceUp and validPile} is sat
 
-    // VP_cardsAbidingRules: assert { some gs: GameState, p: Pile | }} 
-
+    // face down cards are exempt from color and rank rules
+    VP_noColorAltStillWellformed: assert {faceDownCardsNoColorAlt and validPile} is sat
+    VP_noNumberOrderStillWellformed: assert {faceDownCardsNoRankOrder and validPile} is sat
+    
     // they can be empty
-    // can have more than one face up cards
-    // at least one card needs to be face up
+    VP_emptyPile: assert {some gs: GameState, p: Pile | no gs.columnTop[p] and validPile[gs, p]} is sat
 
+    // at least one card needs to be face up
+    VP_noCardFaceUp: assert {some gs: GameState, p: Pile | {
+        no c: Card | {
+            inPile[gs, p, c]
+            gs.faceDown[c] = False
+        }
+    }} is unsat
+    VP_atLeastOneCardFaceUp: assert {some gs: GameState, p: Pile | {
+        some c: Card | {
+            inPile[gs, p, c]
+            gs.faceDown[c] = False
+        }
+    }} is necessary for validPile
 }
+
 test suite for validEndPile {
     // [gs: GameState, ep: EndPile]
 
-    // VEP_everyCardFaceUp
-
     // every card face up
+    VEP_everyCardFaceUp: assert allCardFaceUpInEndP is necessary for validEndPile
+    VEP_oneCardFaceDown: assert {some gs: GameState, ep: EndPile, c: Card | {
+        inEndPile[gs, ep, c]
+        gs.faceDown[c] = True
+    }} is unsat
+    
     // one by one order
+    VEP_everyCardIsOneRankDiff: assert {some gs: GameState, ep: EndPile | {
+        all disj c1, c2: Card | {
+            (inEndPile[gs, ep, c1] and inEndPile[gs, ep, c2]) implies
+        }}
+
     // same suit same color
     // they can be empty
 }
@@ -506,6 +546,88 @@ test suite for winnable {
         -- Solitaire trace
         GameState = `GS0
     }
+
+    // example winnableCase is {winnable} for {
+    //     `Solitaire0.init = `GS0
+
+    //     Boolean = `True + `False
+    //     True = `True
+    //     False = `False
+
+    //     Suit = `Heart + `Diamond + `Spade + `Clover
+    //     Heart = `Heart
+    //     Diamond = `Diamond
+    //     Spade = `Spade
+    //     Clover = `Clover
+
+    //     Color = `Red + `Black
+    //     Red = `Red
+    //     Black = `Black
+        
+    //     -- Cards
+    //     Card = `C1H + `C2H + `C3H + `C1D + `C2D + `C3D + 
+    //         `C1S + `C2S + `C3S + `C1C + `C2C + `C3C
+
+    //     `C1H.suit = `Heart    `C1H.color = `Red    `C1H.rank = 1
+    //     `C2H.suit = `Heart    `C2H.color = `Red    `C2H.rank = 2
+    //     `C3H.suit = `Heart    `C3H.color = `Red    `C3H.rank = 3
+    //     `C1D.suit = `Diamond  `C1D.color = `Red    `C1D.rank = 1
+    //     `C2D.suit = `Diamond  `C2D.color = `Red    `C2D.rank = 2
+    //     `C3D.suit = `Diamond  `C3D.color = `Red    `C3D.rank = 3
+    //     `C1S.suit = `Spade    `C1S.color = `Black  `C1S.rank = 1
+    //     `C2S.suit = `Spade    `C2S.color = `Black  `C2S.rank = 2
+    //     `C3S.suit = `Spade    `C3S.color = `Black  `C3S.rank = 3
+    //     `C1C.suit = `Clover   `C1C.color = `Black  `C1C.rank = 1
+    //     `C2C.suit = `Clover   `C2C.color = `Black  `C2C.rank = 2
+    //     `C3C.suit = `Clover   `C3C.color = `Black  `C3C.rank = 3
+
+    //     -- Piles
+    //     Pile = `Pile0 + `Pile1 + `Pile2
+    //     `GS0.columnTop = `Pile0 -> `C2D + 
+    //                      `Pile1 -> `C2S + 
+    //                      `Pile2 -> `C2H
+
+    //     -- cardBelow chains
+    //     `GS0.cardBelow = `C3H -> `C3D +
+    //                      `C3D -> `C3S +
+    //                      `C3S -> `C1C +
+    //                      `C1C -> `C2C +
+    //                      `C2C -> `C3C +
+    //                      `C2S -> `C1S + 
+    //                      `C2H -> `C1H + 
+    //                      `C1H -> `C1D
+
+    //     -- faceDown
+    //     `GS0.faceDown = `C2D -> `False +
+    //                     `C2S -> `False +
+    //                     `C1S -> `True  +
+    //                     `C2H -> `False +
+    //                     `C1H -> `True  +
+    //                     `C1D -> `True  +
+    //                     `C3H -> `True  +
+    //                     `C3D -> `True  +
+    //                     `C3S -> `True  +
+    //                     `C1C -> `True  +
+    //                     `C2C -> `True  +
+    //                     `C3C -> `True
+
+    //     -- Deck
+    //     `GS0.deckTop = `C3H
+
+    //     -- Discard empty
+    //     no `GS0.discardTop
+
+    //     -- EndPiles
+    //     EndPile = `EP_Heart + `EP_Diamond + `EP_Spade + `EP_Clover
+    //     `EP_Heart.endPileSuit   = `Heart
+    //     `EP_Diamond.endPileSuit = `Diamond
+    //     `EP_Spade.endPileSuit   = `Spade
+    //     `EP_Clover.endPileSuit  = `Clover
+    //     no `GS0.endPileTop
+
+    //     -- Solitaire trace
+    //     GameState = `GS0
+    // }
 }
 
 test suite for validMove {

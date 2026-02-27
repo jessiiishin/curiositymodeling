@@ -166,7 +166,35 @@ pred validPile[gs: GameState, p: Pile] {
         }
     }
     // cards in pile are always in ascending order from top to bottom
-    all c: Card | inPile[gs, p, c] implies gs.cardBelow[c].rank > c.rank
+    all c: Card | (inPile[gs, p, c] and gs.faceDown[c] = False and gs.faceDown[cardBelow[c]]) implies gs.cardBelow[c].rank > c.rank
+}
+
+pred validEndPile[gs: GameState, ep: EndPile] {
+    // every card in the end pile must match the pile's suit
+    all c: Card | inEndPile[gs, ep, c] implies {
+        c.suit = ep.endPileSuit
+    }
+
+    // for sake of argument, let them all be faceup
+    all c: Card | inEndPile[gs, ep, c] implies {
+        gs.faceDown[c] = False
+    }
+
+    // cards in desc. order
+    all c: Card | inEndPile[gs, ep, c] implies {
+        some gs.cardBelow[c] implies {
+            gs.cardBelow[c].rank = subtract[c.rank, 1]
+        }
+    }
+
+    // bottom card must be rank 1
+    some gs.endPileTop[ep] implies {
+        some bottom: Card | {
+            inEndPile[gs, ep, bottom]
+            no gs.cardBelow[bottom]
+            bottom.rank = 1
+        }
+    }
 }
 
 
@@ -228,34 +256,6 @@ pred twelve_init {
         #{c: Card | reachable[c, gs.deckTop, gs.cardBelow]} = 5
 
         wellformed_initial[gs]
-    }
-}
-
-pred validEndPile[gs: GameState, ep: EndPile] {
-    // every card in the end pile must match the pile's suit
-    all c: Card | inEndPile[gs, ep, c] implies {
-        c.suit = ep.endPileSuit
-    }
-
-    // for sake of argument, let them all be faceup
-    all c: Card | inEndPile[gs, ep, c] implies {
-        gs.faceDown[c] = False
-    }
-
-    // cards in desc. order
-    all c: Card | inEndPile[gs, ep, c] implies {
-        some gs.cardBelow[c] implies {
-            gs.cardBelow[c].rank = subtract[c.rank, 1]
-        }
-    }
-
-    // bottom card must be rank 1
-    some gs.endPileTop[ep] implies {
-        some bottom: Card | {
-            inEndPile[gs, ep, bottom]
-            no gs.cardBelow[bottom]
-            bottom.rank = 1
-        }
     }
 }
 

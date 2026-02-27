@@ -708,8 +708,8 @@ pred gameComplete[gs: GameState] {
 }
 
 pred stayComplete {
-    some gs: GameState | gameComplete[gs] implies {
-        all post: GameState | reachable[post, gs, next] implies {
+    all gs: GameState | gameComplete[gs] implies {
+         all post: GameState | reachable[post, gs, next] implies {
             all ep: EndPile | gs.endPileTop[ep] = post.endPileTop[ep]
             all p: Pile | gs.columnTop[p] = post.columnTop[p]
             
@@ -732,7 +732,6 @@ pred winnable {
 
 
 pred validMove[pre: GameState, post: GameState] {
-    twelve_wellformed
     not gameComplete[pre]
     // pre != post
     
@@ -753,14 +752,33 @@ pred validMove[pre: GameState, post: GameState] {
 pred validGame {
     twelve_wellformed
     twelve_init[Solitaire.init] 
+
+    all disj gs1, gs2: GameState | {
+    not (
+            gs1.deckTop = gs2.deckTop and
+            gs1.discardTop = gs2.discardTop and
+            (all p: Pile | gs1.columnTop[p] = gs2.columnTop[p]) and
+            (all ep: EndPile | gs1.endPileTop[ep] = gs2.endPileTop[ep]) and
+            (all c: Card | gs1.cardBelow[c] = gs2.cardBelow[c])
+        )
+    }
+
     all gs: GameState | some Solitaire.next[gs] implies validMove[gs, Solitaire.next[gs]]
 }
 
 valid_and_winnable: run {
-    winnable
     validGame
-} for exactly 12 Card, exactly 3 Pile, exactly 25 GameState
+    winnable
+} 
+for exactly 12 Card, exactly 3 Pile, exactly 4 EndPile, 20 GameState
 for {next is linear}
+
+one_ep_complete: run {
+    validGame
+    some gs: GameState | some ep: EndPile | completedEndPile[gs, ep]
+} for exactly 12 Card, exactly 3 Pile, exactly 4 EndPile, 8 GameState
+for {next is linear}
+
 
 one_move_pile_to_pile: run {
     twelve_wellformed
@@ -805,21 +823,76 @@ game_complete: run {
     some gs: GameState | gameComplete[gs]
 } for exactly 1 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
 
-draw_card: run {    
+
+// TEST MOVEMENTS
+test_drawCard: run {
     twelve_wellformed
     some pre, post: GameState | drawCard[pre, post]
-} 
-for exactly 2 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
+} for exactly 2 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
 for {next is linear}
 
-reset_deck: run {    
+test_resetDeck: run {
     twelve_wellformed
     some pre, post: GameState | resetDeck[pre, post]
-} 
-for exactly 2 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
+} for exactly 2 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
 for {next is linear}
 
-// winnable:
+test_movePileToPile: run {
+    twelve_wellformed
+    some pre, post: GameState, c1, c2: Card, p1, p2: Pile | 
+        movePileToPile[c1, c2, p1, p2, pre, post]
+} for exactly 2 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
+for {next is linear}
+
+test_movePileToEmptyPile: run {
+    twelve_wellformed
+    some pre, post: GameState, c: Card, p1, p2: Pile | 
+        movePileToEmptyPile[c, p1, p2, pre, post]
+} for exactly 2 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
+for {next is linear}
+
+test_movePileToEndPile: run {
+    twelve_wellformed
+    some pre, post: GameState, c: Card, p: Pile, ep: EndPile | 
+        movePileToEndPile[c, p, ep, pre, post]
+} for exactly 2 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
+for {next is linear}
+
+test_moveEndPileToPile: run {
+    twelve_wellformed
+    some pre, post: GameState, c1, c2: Card, ep: EndPile, p: Pile | 
+        moveEndPileToPile[c1, c2, ep, p, pre, post]
+} for exactly 2 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
+for {next is linear}
+
+test_moveEndPileToEmptyPile: run {
+    twelve_wellformed
+    some pre, post: GameState, c: Card, ep: EndPile, p: Pile | 
+        moveEndPileToEmptyPile[c, ep, p, pre, post]
+} for exactly 2 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
+for {next is linear}
+
+test_moveDiscardToPile: run {
+    twelve_wellformed
+    some pre, post: GameState, c: Card, p: Pile | 
+        moveDiscardToPile[c, p, pre, post]
+} for exactly 2 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
+for {next is linear}
+
+test_moveDiscardToEmptyPile: run {
+    twelve_wellformed
+    some pre, post: GameState, c: Card, p: Pile | 
+        moveDiscardToEmptyPile[c, p, pre, post]
+} for exactly 2 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
+for {next is linear}
+
+test_moveDiscardToEndPile: run {
+    twelve_wellformed
+    some pre, post: GameState, c: Card, ep: EndPile | 
+        moveDiscardToEndPile[c, ep, pre, post]
+} for exactly 2 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
+for {next is linear}
+
 
 // run {
 //     wellformed

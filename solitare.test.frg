@@ -199,7 +199,7 @@ test suite for wellformed_initial {
 
 test suite for twelve_init {
 	// we cannot be init stage and be complete
-	assert some gs: GameState | gameComplete[gs] is inconsistent with twelve_init
+    TI_notComplete: assert { some gs: GameState | gameComplete[gs] and twelve_init[gs] } is unsat
 }
 
 test suite for exclusiveDecksAndPiles {

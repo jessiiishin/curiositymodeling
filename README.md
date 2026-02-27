@@ -1,31 +1,36 @@
-# curiositymodeling
+# 🃏 Solitaire
+
+### <center>♠️  ♥️  ♣️  ♦️</center>
+
+---
 
 Project Objective: What are you trying to model? Include a brief description that would give someone unfamiliar with the topic a basic understanding of your goal.
 
-**Objective**
+## Project Objective
 
-The objective of this model is to model Klondike (solitaire). Klondike is a type of solitaire game 
-where the goal is to sort a standard deck of cards (52 cards, 4 suits, excluding Jokers) into their 
-respective suits in ascending order. You start with a tableau of seven fanned piles, each pile 
-from left to right has respectively 1 card, 2 cards, 3 cards, etc. The top most card of the piles 
-are facing up, all the others are facing down. All the other cards are put into a deck. In each 
-move, you may either draw from the deck or move cards around in the tableau or move cards into 
+The objective of this model is to model Klondike (solitaire). Klondike is a type of solitaire game
+where the goal is to sort a standard deck of cards (52 cards, 4 suits, excluding Jokers) into their
+respective suits in ascending order. You start with a tableau of seven fanned piles, each pile
+from left to right has respectively 1 card, 2 cards, 3 cards, etc. The top most card of the piles
+are facing up, all the others are facing down. All the other cards are put into a deck. In each
+move, you may either draw from the deck or move cards around in the tableau or move cards into
 the foundations (goal).
 
-The cards in the tableau must be placed in a specific pattern, you can place cards on top of each 
-other only if they are alternating colors and maintaining a sequential, descending order. If there 
+The cards in the tableau must be placed in a specific pattern, you can place cards on top of each
+other only if they are alternating colors and maintaining a sequential, descending order. If there
 are no moves you can make, you lose the game.
 
-We explored if there are specific deals of the cards that makes the game inherently unbeatable, 
+We explored if there are specific deals of the cards that makes the game inherently unbeatable,
 using a smaller game with only 12 cards total.
 
-**Model Design and Visualization**
+## Model Design and Visualization
 
-**Signatures and Predicates**
+### Signatures and Predicates
 
-Signatures:
+#### Signatures
+
 - Boolean (True, False):
-    - Abstract sig extended by True and False. 
+    - Abstract sig extended by True and False.
     - Represents rudimentary boolean logic.
 
 - Suit (Heart, Diamond, Spade, Clover):
@@ -44,13 +49,13 @@ Signatures:
 - Deck
 - Discard
 
+#### Predicates
 
-Predicates:
 - general_wellformed:
     - Enforces that the deals (whatever the number of cards are) are wellformed.
-    - Cards have a suits and colors that correspond to each other, no duplicate cards, the number 
-    of foundations = number of suits, a stack of cards is linear, and cards cannot appear in 
-    multiple stacks (deck, pile, endpile, etc.) at once.
+    - Cards have a suits and colors that correspond to each other, no duplicate cards, the number
+      of foundations = number of suits, a stack of cards is linear, and cards cannot appear in
+      multiple stacks (deck, pile, endpile, etc.) at once.
 
 - twelve_wellformed:
     - Enforces that there are twelve wellformed cards, ranks from 1 to 3.
@@ -58,20 +63,20 @@ Predicates:
 - wellformed_initial:
     - Defines what a good starting state is like.
     - Tableau cards in piles should all be facing down except for the topmost one, EndPiles should
-    be empty, piles should not be empty, deck should not be empty, discard should be empty
+      be empty, piles should not be empty, deck should not be empty, discard should be empty
 
 - twelve_init:
     - Defines what a good starting state is like for specifically twelve cards.
     - 3 piles, first one has 1 card, second one has 2 cards, third has 3. Deck has 6 cards.
 
 - validEndPile:
-    - Defines what a valid EndPile (foundation) should be. 
-    - Every card should match the EndPile's suit, be in descending order (K->A top to bottom), 
-    bottom card rank = 1, all cards face up.
+    - Defines what a valid EndPile (foundation) should be.
+    - Every card should match the EndPile's suit, be in descending order (K->A top to bottom),
+      bottom card rank = 1, all cards face up.
 
 - completedEndPile:
     - Defines what a complete EndPile (foundation) should be for twelve cards.
-    - It's a valid EndPile with Topmost card's rank being 3. 
+    - It's a valid EndPile with Topmost card's rank being 3.
 
 - validMove:
     - Defines what a valid move is. Player can take one of the following moves:
@@ -83,14 +88,13 @@ Predicates:
 - movePileToPile:
 - moveEndPileToPile:
 
-
 - drawCard
 - moveCardToFoundation
 - gameComplete
 - stayComplete
 - winnable
 
-**Testing**
+### Testing
 
 **Documentation**
 

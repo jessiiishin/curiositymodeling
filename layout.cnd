@@ -11,7 +11,11 @@ directives:
   - hideAtom: {selector: Color}
   - hideAtom: {selector: Suit}
   - hideAtom: {selector: Boolean}
-
+  - attribute: {field: discardTop}
   - attribute: {field: faceDown}
   - attribute: {field: endPileSuit}
   - attribute: {field: color}
+  - attribute: {field: suit}
+  - attribute: {field: rank}
+  - projection: {sig: GameState}
+  - flag: hideDisconnectedBuiltIns

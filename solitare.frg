@@ -274,7 +274,6 @@ pred twelve_init[gs: GameState] {
     #{c: Card | reachable[c, gs.deckTop, gs.cardBelow]} = 5
 
     wellformed_initial[gs]
-    
 }
 
 pred completedEndPile[gs: GameState, ep: EndPile] {

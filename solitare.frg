@@ -753,11 +753,13 @@ pred validGame {
     twelve_init[Solitaire.init] 
 
     all disj gs1, gs2: GameState | {
-        some gs1.deckTop != gs2.deckTop or
-        some gs1.discardTop != gs2.discardTop or
-        (some p: Pile | gs1.columnTop[p] != gs2.columnTop[p]) or
-        (some ep: EndPile | gs1.endPileTop[ep] != gs2.endPileTop[ep]) or
-        (some c: Card | gs1.cardBelow[c] != gs2.cardBelow[c])
+    not (
+            gs1.deckTop = gs2.deckTop and
+            gs1.discardTop = gs2.discardTop and
+            (all p: Pile | gs1.columnTop[p] = gs2.columnTop[p]) and
+            (all ep: EndPile | gs1.endPileTop[ep] = gs2.endPileTop[ep]) and
+            (all c: Card | gs1.cardBelow[c] = gs2.cardBelow[c])
+        )
     }
 
     all gs: GameState | some Solitaire.next[gs] implies validMove[gs, Solitaire.next[gs]]

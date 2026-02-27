@@ -175,7 +175,7 @@ test suite for general_wellformed {
     GW_notExclusiveDeckDiscard: assert {cardInDeckAndDiscard and general_wellformed} is unsat
     GW_notExclusiveEndPile: assert {cardInMultipleEndPiles and general_wellformed} is unsat
     GW_notExclusive: assert {cardInMultiplePlaces and general_wellformed} is unsat
-    GW_noColorAltStillWellformed: assert {}
+    // GW_noColorAltStillWellformed: assert {}
 
     GW_sameCards: assert {some disj c1, c2: Card | c1.suit = c2.suit and c1.rank = c2.rank and general_wellformed} is unsat
     GW_sameSuit: assert {some disj c1, c2: Card | c1.suit = c2.suit and general_wellformed} is sat for exactly 12 Card
@@ -204,6 +204,90 @@ test suite for twelve_init {
 
 test suite for exclusiveDecksAndPiles {
     
+}
+
+test suite for winnable {
+    example unwinnableCase is {not winnable} for {
+        `Solitaire0.init = `GS0
+
+        Boolean = `True + `False
+        True = `True
+        False = `False
+
+        Suit = `Heart + `Diamond + `Spade + `Clover
+        Heart = `Heart
+        Diamond = `Diamond
+        Spade = `Spade
+        Clover = `Clover
+
+        Color = `Red + `Black
+        Red = `Red
+        Black = `Black
+        
+        -- Cards
+        Card = `C1H + `C2H + `C3H + `C1D + `C2D + `C3D + 
+            `C1S + `C2S + `C3S + `C1C + `C2C + `C3C
+
+        `C1H.suit = `Heart    `C1H.color = `Red    `C1H.rank = 1
+        `C2H.suit = `Heart    `C2H.color = `Red    `C2H.rank = 2
+        `C3H.suit = `Heart    `C3H.color = `Red    `C3H.rank = 3
+        `C1D.suit = `Diamond  `C1D.color = `Red    `C1D.rank = 1
+        `C2D.suit = `Diamond  `C2D.color = `Red    `C2D.rank = 2
+        `C3D.suit = `Diamond  `C3D.color = `Red    `C3D.rank = 3
+        `C1S.suit = `Spade    `C1S.color = `Black  `C1S.rank = 1
+        `C2S.suit = `Spade    `C2S.color = `Black  `C2S.rank = 2
+        `C3S.suit = `Spade    `C3S.color = `Black  `C3S.rank = 3
+        `C1C.suit = `Clover   `C1C.color = `Black  `C1C.rank = 1
+        `C2C.suit = `Clover   `C2C.color = `Black  `C2C.rank = 2
+        `C3C.suit = `Clover   `C3C.color = `Black  `C3C.rank = 3
+
+        -- Piles
+        Pile = `Pile0 + `Pile1 + `Pile2
+        `GS0.columnTop = `Pile0 -> `C2D + 
+                         `Pile1 -> `C2S + 
+                         `Pile2 -> `C2H
+
+        -- cardBelow chains
+        `GS0.cardBelow = `C3H -> `C3D +
+                         `C3D -> `C3S +
+                         `C3S -> `C1C +
+                         `C1C -> `C2C +
+                         `C2C -> `C3C +
+                         `C2S -> `C1S + 
+                         `C2H -> `C1H + 
+                         `C1H -> `C1D
+
+        -- faceDown
+        `GS0.faceDown = `C2D -> `False +
+                        `C2S -> `False +
+                        `C1S -> `True  +
+                        `C2H -> `False +
+                        `C1H -> `True  +
+                        `C1D -> `True  +
+                        `C3H -> `True  +
+                        `C3D -> `True  +
+                        `C3S -> `True  +
+                        `C1C -> `True  +
+                        `C2C -> `True  +
+                        `C3C -> `True
+
+        -- Deck
+        `GS0.deckTop = `C3H
+
+        -- Discard empty
+        no `GS0.discardTop
+
+        -- EndPiles
+        EndPile = `EP_Heart + `EP_Diamond + `EP_Spade + `EP_Clover
+        `EP_Heart.endPileSuit   = `Heart
+        `EP_Diamond.endPileSuit = `Diamond
+        `EP_Spade.endPileSuit   = `Spade
+        `EP_Clover.endPileSuit  = `Clover
+        no `GS0.endPileTop
+
+        -- Solitaire trace
+        GameState = `GS0
+    }
 }
 
 

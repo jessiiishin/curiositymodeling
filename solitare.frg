@@ -274,7 +274,6 @@ pred twelve_init[gs: GameState] {
     #{c: Card | reachable[c, gs.deckTop, gs.cardBelow]} = 5
 
     wellformed_initial[gs]
-    
 }
 
 pred completedEndPile[gs: GameState, ep: EndPile] {
@@ -750,6 +749,7 @@ pred validMove[pre: GameState, post: GameState] {
 }
 
 pred validGame {
+    twelve_wellformed
     twelve_init[Solitaire.init] 
     all gs: GameState | some Solitaire.next[gs] implies validMove[gs, Solitaire.next[gs]]
 }
@@ -757,7 +757,7 @@ pred validGame {
 valid_and_winnable: run {
     winnable
     validGame
-} for exactly 12 Card, exactly 3 Pile
+} for exactly 12 Card, exactly 3 Pile, exactly 4 GameState
 
 one_move_pile_to_pile: run {
     twelve_wellformed

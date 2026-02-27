@@ -752,6 +752,7 @@ pred validGame {
     }
 
     all gs: GameState | some Solitaire.next[gs] implies validMove[gs, Solitaire.next[gs]]
+    no gs: GameState | Solitaire.next[gs] = Solitaire.init
 }
 
 

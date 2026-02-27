@@ -501,36 +501,190 @@ pred moveEndPileToPile[targetCard, destCard: Card, srcEndP: EndPile, destP: Pile
 // PILE -> END PILE
 pred movePileToEndPile[targetCard: Card, srcP: Pile, destEP: EndPile, pre, post: GameState] {
     -- GUARD
-    // targetCard must be a card from a Pile or Discard
+    // moved card must be the top of an pile
     pre.columnTop[srcP] = targetCard
     pre.faceDown[targetCard] = False
 
-    // destCard must be the top of an EndPile
-    // targetCard rank > destCard rank
     // targetCard suit = destCard suit
-    // (correspondingly) targetCard color = destCard color idk if this needs to be extra enforced
+    targetCard.suit = destEP.endPileSuit
+
+    // targetCard rank > destCard rank
+    some pre.endPileTop[destEP] implies {
+        targetCard.rank = add[pre.endPileTop[destEP].rank, 1]
+    }
+    
+    // the first end card
+    no pre.endPileTop[destEP] implies {
+        targetCard.rank = 1
+    }
 
     -- ACTION
     // targetCard cardBelow = destCard
     // post.endPile[endpile] = targetCard
+    post.endPileTop[destEP] = targetCard
+    post.cardBelow[targetCard] = pre.endPileTop[destEP]
+
+    // card below becomes new top card
+    some pre.cardBelow[targetCard] implies {
+        post.columnTop[srcP] = pre.cardBelow[targetCard]
+        post.faceDown[pre.cardBelow[targetCard]] = False
+    }
+
+    no pre.cardBelow[targetCard] implies {
+        no post.columnTop[srcP]
+    }
 
     -- FRAME CONDITION
+    post.deckTop = pre.deckTop
+    post.discardTop = pre.discardTop
+    all ep: EndPile | ep != destEP implies post.endPileTop[ep] = pre.endPileTop[ep]
+    all p: Pile | p != srcP implies post.columnTop[p] = pre.columnTop[p]
+    all c: Card | c != targetCard implies post.cardBelow[c] = pre.cardBelow[c]
+    all c: Card | c != pre.cardBelow[targetCard] implies post.faceDown[c] = pre.faceDown[c]
 }
 
 // DISCARD -> PILE
-pred moveDiscardToEndPile {
-    
+pred moveDiscardToEndPile[targetCard: Card, destEP: EndPile, pre, post: GameState] {
+    -- GUARD
+    pre.discardTop = targetCard
+    pre.faceDown[targetCard] = False
+
+    // suit match
+    targetCard.suit = destEP.endPileSuit
+
+    // if end pile is empty, targetCard must be rank 1 otherwise +1
+    some pre.endPileTop[destEP] implies {
+        targetCard.rank = add[pre.endPileTop[destEP].rank, 1]
+    }
+
+    no pre.endPileTop[destEP] implies {
+        targetCard.rank = 1
+    }
+
+    -- ACTION
+    post.endPileTop[destEP] = targetCard
+    post.cardBelow[targetCard] = pre.endPileTop[destEP]
+
+    some pre.cardBelow[targetCard] implies {
+        post.discardTop = pre.cardBelow[targetCard]
+    }
+    no pre.cardBelow[targetCard] implies {
+        no post.discardTop
+    }
+
+    -- FRAME CONDITION
+    post.deckTop = pre.deckTop
+    all p: Pile | post.columnTop[p] = pre.columnTop[p]
+    all ep: EndPile | ep != destEP implies post.endPileTop[ep] = pre.endPileTop[ep]
+    all c: Card | c != targetCard implies post.cardBelow[c] = pre.cardBelow[c]
+    all c: Card | post.faceDown[c] = pre.faceDown[c]
 }
 
-pred moveDiscardToPile {
+pred moveDiscardToPile[targetCard: Card, destP: Pile, pre, post: GameState] {
+    -- GUARD
+    // top of discard
+    pre.discardTop = targetCard
+    pre.faceDown[targetCard] = False
 
+    // move into a faceup column
+    some pre.columnTop[destP]
+    pre.faceDown[pre.columnTop[destP]] = False
+
+    // exactly +1 
+    targetCard.rank = subtract[pre.columnTop[destP].rank, 1]
+
+    // diff color
+    targetCard.color != pre.columnTop[destP].color
+
+    -- ACTION
+    // new top of pile
+    post.columnTop[destP] = targetCard
+    post.cardBelow[targetCard] = pre.columnTop[destP]
+
+    // new top card in discard
+    some pre.cardBelow[targetCard] implies {
+        post.discardTop = pre.cardBelow[targetCard]
+    }
+    no pre.cardBelow[targetCard] implies {
+        no post.discardTop
+    }
+
+    post.deckTop = pre.deckTop
+    all p: Pile | p != destP implies post.columnTop[p] = pre.columnTop[p]
+    all ep: EndPile | post.endPileTop[ep] = pre.endPileTop[ep]
+    all c: Card | c != targetCard implies post.cardBelow[c] = pre.cardBelow[c]
+    all c: Card | post.faceDown[c] = pre.faceDown[c]
 }
 
-pred moveDiscardToEmptyPile {
-    
+pred moveDiscardToEmptyPile[targetCard: Card, destP: Pile, pre, post: GameState] {
+    -- GUARD
+    // top of discard
+    pre.discardTop = targetCard
+    pre.faceDown[targetCard] = False
+
+    // pile is empty
+    no pre.columnTop[destP]
+
+    // target card is max
+    all c: Card | c != targetCard implies {
+        targetCard.rank >= c.rank
+    }
+
+    -- ACTION
+    // new top of dest pile
+    post.columnTop[destP] = targetCard
+    no post.cardBelow[targetCard]
+
+    // new top of discard
+    some pre.cardBelow[targetCard] implies {
+        post.discardTop = pre.cardBelow[targetCard]
+    }
+    no pre.cardBelow[targetCard] implies {
+        no post.discardTop
+    }
+
+    -- FRAME
+    post.deckTop = pre.deckTop
+    all p: Pile | p != destP implies post.columnTop[p] = pre.columnTop[p]
+    all ep: EndPile | post.endPileTop[ep] = pre.endPileTop[ep]
+    all c: Card | c != targetCard implies post.cardBelow[c] = pre.cardBelow[c]
+    all c: Card | post.faceDown[c] = pre.faceDown[c]
 }
 
-pred moveEndPileToEmptyPile {
+pred moveEndPileToEmptyPile[targetCard: Card, srcEP: EndPile, destP: Pile, pre, post: GameState] {
+    -- GUARD
+    // target card top of ep
+    pre.endPileTop[srcEP] = targetCard
+    pre.faceDown[targetCard] = False
+
+    // destination is empty
+    no pre.columnTop[destP]
+
+    // target card is max
+    all c: Card | c != targetCard implies {
+        targetCard.rank >= c.rank
+    }
+
+    -- ACTION
+    // top of dest pile
+    post.columnTop[destP] = targetCard
+    no post.cardBelow[targetCard]
+
+    // new end pile top
+    some pre.cardBelow[targetCard] implies {
+        post.endPileTop[srcEP] = pre.cardBelow[targetCard]
+    }
+    no pre.cardBelow[targetCard] implies {
+        no post.endPileTop[srcEP]
+    }
+
+    -- FRAME
+    post.deckTop = pre.deckTop
+    post.discardTop = pre.discardTop
+    all p: Pile | p != destP implies post.columnTop[p] = pre.columnTop[p]
+    all ep: EndPile | ep != srcEP implies post.endPileTop[ep] = pre.endPileTop[ep]
+    all c: Card | c != targetCard implies post.cardBelow[c] = pre.cardBelow[c]
+    all c: Card | post.faceDown[c] = pre.faceDown[c]
 
 }
 

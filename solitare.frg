@@ -401,7 +401,7 @@ pred movePileToEmptyPile[targetCard: Card, srcP, destP: Pile, pre, post: GameSta
     no pre.columnTop[destP]
     
     // coming from another pile
-    some srcP: Pile | inPile[pre, srcP, targetCard]
+    inPile[pre, srcP, targetCard]
     
     // face down
     pre.faceDown[targetCard] = False
@@ -430,6 +430,7 @@ pred movePileToEmptyPile[targetCard: Card, srcP, destP: Pile, pre, post: GameSta
 
     // move card
     post.columnTop[destP] = pre.columnTop[srcP]
+    no post.cardBelow[targetCard]
 
     -- FRAME CONDITION
     movePileToPileGeneralFrame[targetCard, srcP, destP, pre, post]
@@ -723,10 +724,12 @@ pred stayComplete {
 } //?
 
 pred winnable {
-    some gs: GameState | gameComplete[gs] implies {
-        reachable[gs, init, next]
+    some gs: GameState | {
+        gameComplete[gs]
+        reachable[gs, Solitaire.init, Solitaire.next]
     }
 }
+
 
 pred validMove[pre: GameState, post: GameState] {
     twelve_wellformed

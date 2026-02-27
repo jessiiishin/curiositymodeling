@@ -104,11 +104,12 @@ pred cardFaceDownInDiscard {
 pred topCardButBelow {
     some gs: GameState | {
         some disj c1, c2: Card | {
-            some p: Pile, ep: EndPile, d: Deck | {
-                gs.cardBelow[c2, c1] and
+            some p: Pile, ep: EndPile, d: Deck, dis: Discard | {
+                gs.cardBelow[c2] = c1 and
                 (c1 = gs.columnTop[p] or
                     c1 = gs.endPileTop[ep] or 
-                    c1 = gs.deckTop[d])
+                    c1 = gs.deckTop or
+                    c1 = gs.discardTop)
             }
         }
     }
@@ -227,24 +228,200 @@ test suite for twelve_wellformed {
 }
 
 test suite for wellformed_initial {
-    assert {some gs: GameState | gameComplete[gs] and wellformed_initial} is unsat
-    assert {cyclicCards and wellformed_initial} is unsat
-    WI_multiIPileFaceup: assert {multCardsInPileFaceUp and wellformed_initial} is unsat
-    WI_multiplePlaces: assert {cardInMultiplePlaces and wellformed_initial} is unsat
-    WI_topButBelow: assert {topCardButBelow and wellformed_initial} is unsat
+    WI_completeAndInit: assert {some gs: GameState | gameComplete[gs] and wellformed_initial[gs]} is unsat
+    WI_multiIPileFaceup: assert {some gs: GameState | multCardsInPileFaceUp and wellformed_initial[gs]} is unsat
+    WI_multiplePlaces: assert {some gs: GameState | cardInMultiplePlaces and general_wellformed and wellformed_initial[gs]} is unsat
+    WI_topButBelow: assert {some gs: GameState | topCardButBelow and wellformed_initial[gs]} is unsat
 
-    // WI_consistentWithGeneral: assert general_wellformed is consistent with wellformed_initial
+    WI_consistentWithGeneral: assert all gs: GameState | wellformed_initial[gs] is consistent with general_wellformed
+        for exactly 12 Card, exactly 3 Pile
 
 }
 
 test suite for twelve_init {
 	// we cannot be init stage and be complete
 	assert {some gs: GameState | gameComplete[gs] and twelve_init} is unsat
-    
 }
 
 test suite for exclusiveDecksAndPiles {
+    // exclusiveDecksAndPiles[st: GameState]
+    assert { }
+}
+
+test suite for validPile {
+    // [gs: GameState, p: Pile]
+
+    // face down cards are exempt from these rules
+    VP_noColorAltFaceDown: assert {some gs: GameState, p: Pile | faceDownCardsNoColorAlt and validPile[gs, p]} is sat
+    VP_noNumberOrderFaceDown: assert {some gs: GameState, p: Pile | faceDownCardsNoRankOrder and validPile[gs, p]} is sat
     
+    // ordering and faceDown stuff
+    VP_topFaceDown: assert {some gs: GameState, p: Pile | topCardFaceDown and validPile[gs, p]} is unsat
+    VP_faceUpBelowFaceDown: assert {some c1, c2: Card, gs: GameState, p: Pile | {
+        inPile[gs, p, c1] and inPile[gs, p, c2]
+        gs.cardBelow[c1] = c2
+        gs.faceDown[c1] = True
+        gs.faceDown[c2] = False
+    }}
+
+    // VP_cardsAbidingRules: assert { some gs: GameState, p: Pile | }} 
+
+    // they can be empty
+    // can have more than one face up cards
+    // at least one card needs to be face up
+
+}
+test suite for validEndPile {
+    // [gs: GameState, ep: EndPile]
+
+    // VEP_everyCardFaceUp
+
+    // every card face up
+    // one by one order
+    // same suit same color
+    // they can be empty
+}
+
+
+/* 
+--------------------------------------------------
+    Predicates for valid moves
+--------------------------------------------------
+*/
+
+pred nothingChanges[pre, post: GameState] {
+    pre.deckTop = post.deckTop
+    pre.discardTop = post.discardTop
+    all p: Pile | pre.columnTop[p] = post.columnTop[p]
+    all ep: EndPile | pre.endPileTop[ep] = post.endPileTop[ep]
+    all c: Card | pre.cardBelow[c] = post.cardBelow[c]
+    all c: Card | pre.faceDown[c] = post.faceDown[c]
+}
+
+pred moveFromEndPileToEndPile {
+    some pre, post: GameState | {
+        some disj ep1, ep2: EndPile | pre.endPileTop[ep1] != post.endPileTop[ep2]
+    }
+}
+
+// two or more cards turned facedown=False
+pred twoCardsTurnedFaceUp {
+    some disj pre, post: GameState | {
+        some disj c1, c2: Card | {
+            pre.faceDown[c1] = True
+            post.faceDown[c1] = False
+
+            pre.faceDown[c2] = True
+            post.faceDown[c2] = False
+        }
+    }
+}
+
+// a card that was face up became facedown = True
+pred faceUpToDown {
+    some disj pre, post: GameState | {
+        some c: Card | {
+            pre.faceDown[c] = False
+            post.faceDown[c] = True
+        }
+    }
+}
+
+// order of pile changed when card is faceDown
+pred faceDownOrderChanged {
+    some disj pre, post: GameState | {
+        some c: Card | {
+            pre.faceDown[c] = True
+            post.faceDown[c] = True
+            pre.cardBelow[c] != post.cardBelow[c]
+        }
+    }
+}
+
+// unchanged stacks of cards stay the same before and after (contents, order, top)
+pred unchangedPilesConsistent[changed: Pile] {
+    
+}
+
+// two or more cards moved at once
+pred twoCardsMovedAtOnce {}
+
+// a card that was not supposed to be turned face up became face up (not at top or not revealed by deck)
+
+
+// somehow the color alternation is not correct after a move
+// trying to move cards from empty stacks should not be possible
+
+// nothing happened but didn't lose (something should happen at every move)
+
+// not all cards were face up but somehow won
+// not all endPiles are complete but somehow won
+// not all piles are empty but somehow won
+
+
+/* 
+--------------------------------------------------
+    Suites for valid moves
+--------------------------------------------------
+*/
+
+// card moved to invalid position where it's not wellformed anymore
+// card moved from one endpile to another
+
+test suite for moveToPileGeneralGuard {
+    // [targetCard, destCard: Card, destP: Pile, pre: GameState]
+}
+
+test suite for movePileToPileGeneralFrame {
+    // [targetCard: Card, srcP, destP: Pile, pre, post: GameState]
+}
+
+test suite for drawCard {
+    // [pre, post: GameState]
+}
+
+test suite for resetDeck {
+    // [pre, post: GameState]
+}
+
+test suite for movePileToEmptyPile {
+    // [targetCard: Card, srcP, destP: Pile, pre, post: GameState]
+}
+
+test suite for movePileToPile {
+    // [targetCard, destCard: Card, srcP, destP: Pile, pre, post: GameState]
+}
+
+test suite for moveEndPileToPile {
+    // [targetCard, destCard: Card, srcEndP: EndPile, destP: Pile, pre, post: GameState]
+}
+
+test suite for movePileToEndPile {
+    // [targetCard: Card, srcP: Pile, destEP: EndPile, pre, post: GameState]
+}
+
+test suite for moveDiscardToEndPile {
+    // [targetCard: Card, destEP: EndPile, pre, post: GameState]
+}
+
+test suite for moveDiscardToPile {
+    // [targetCard: Card, destP: Pile, pre, post: GameState]
+}
+
+test suite for moveDiscardToEmptyPile {
+    // [targetCard: Card, destP: Pile, pre, post: GameState]
+}
+
+test suite for moveEndPileToEmptyPile {
+    // [targetCard: Card, srcEP: EndPile, destP: Pile, pre, post: GameState]
+}
+
+test suite for completedEndPile {
+    // [gs: GameState, ep: EndPile]
+}
+
+test suite for gameComplete {
+    // [gs: GameState]
 }
 
 test suite for winnable {
@@ -331,95 +508,13 @@ test suite for winnable {
     }
 }
 
-
-/* 
---------------------------------------------------
-    Predicates for valid moves
---------------------------------------------------
-*/
-
-pred nothingChanges[pre, post: GameState] {
-    pre.deckTop = post.deckTop
-    pre.discardTop = post.discardTop
-    all p: Pile | pre.columnTop[p] = post.columnTop[p]
-    all ep: EndPile | pre.endPileTop[ep] = post.endPileTop[ep]
-    all c: Card | pre.cardBelow[c] = post.cardBelow[c]
-    all c: Card | pre.faceDown[c] = post.faceDown[c]
-}
-
-pred moveFromEndPileToEndPile {
-    some pre, post: GameState | {
-        some disj ep1, ep2: EndPile | pre.endPileTop[ep1] != post.endPileTop[ep2]
-    }
-}
-
-// two or more cards turned facedown=False
-pred twoCardsTurnedFaceUp {
-    some disj pre, post: GameState | {
-        some disj c1, c2: Card | {
-            pre.faceDown[c1] = True
-            post.faceDown[c1] = False
-
-            pre.faceDown[c2] = True
-            post.faceDown[c2] = False
-        }
-    }
-}
-
-// a card that was face up became facedown = True
-pred faceUpToDown {
-    some disj pre, post: GameState | {
-        some c: Card | {
-            pre.faceDown[c] = False
-            post.faceDown[c] = True
-        }
-    }
-}
-
-// order of pile changed when card is faceDown
-pred faceDownOrderChanged {
-    some disj pre, post: GameState | {
-        some c: Card | {
-            pre.faceDown[c] = True
-            post.faceDown[c] = True
-            pre.cardBelow[c] != post.cardBelow[c]
-        }
-    }
-}
-
-// unchanged stacks of cards stay the same before and after (contents, order, top)
-pred unchangedPilesConsistent[changed: Pile] {
-    
-}
-
-// two or more cards moved at once
-pred 
-
-// a card that was not supposed to be turned face up became face up (not at top or not revealed by deck)
-
-
-// somehow the color alternation is not correct after a move
-// trying to move cards from empty stacks should not be possible
-
-// nothing happened but didn't lose (something should happen at every move)
-
-// not all cards were face up but somehow won
-// not all endPiles are complete but somehow won
-// not all piles are empty but somehow won
-
-
-/* 
---------------------------------------------------
-    Suites for valid moves
---------------------------------------------------
-*/
-
-// card moved to invalid position where it's not wellformed anymore
-// card moved from one endpile to another
-
 test suite for validMove {
+    // [pre: GameState, post: GameState]
     assert all pre, post: GameState | validMove[pre, post] is consistent with moveFromEndPileToEndPile
     assert {some pre, post: GameState | nothingChanges and validMove[pre, post]} is unsat
     
 }
 
+test suite for validGame {
+
+}

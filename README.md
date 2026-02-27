@@ -118,13 +118,21 @@ Each move predicate has a guard, an action and a frame condition.
 
 ## Testing
 
+We have conducted extensive testing across all our predicates in our `solitaire.test.frg` file. Our tests include a variety of assertions and some examples to ensure the correctness of our model.
+
+Specifically, our tests fall into three distinctive buckets.
+
+1. **Wellformedness** -- here, we're checking to ensure that our wellformedness predicates are mutually consistent, and produce the expected board.
+2. **Movements** -- we ensure that the `pre` and `post` states following a move are as we expect, including the holding of invariants.
+3. **Game states** -- we check to ensure that the predicates for a winning game and valid games do indeed force the states to obey these requirements
+
 ## Documentation
 
 The model file is organized into clearly labeled sections:
 
-1. **Type definitions** — suits, colors, cards, piles
-2. **Wellformedness predicates** — invariants that must hold in every game state
-3. **Location predicates** — `inDeck`, `inDiscard`, `inPile`, `inEndPile`
-4. **Move predicates** — one per legal action, each with guard/action/frame comments
-5. **Game-level predicates** — `validMove`, `validGame`, `winnable`, `gameComplete`
-6. **Run statements** — grouped by purpose (sanity checks, move tests, game traces)
+1. **Type definitions** -- suits, colors, cards, piles
+2. **Wellformedness predicates** -- invariants that must hold in every game state
+3. **Location predicates** -- `inDeck`, `inDiscard`, `inPile`, `inEndPile`
+4. **Move predicates** -- one per legal action, each with guard/action/frame comments
+5. **Game-level predicates** -- `validMove`, `validGame`, `winnable`, `gameComplete`
+6. **Run statements** -- grouped by purpose (sanity checks, move tests, game traces)

@@ -38,26 +38,7 @@ sig EndPile {
 one sig Deck {}
 one sig Discard {}
 
-/*
-Helper functions to check card is part of pile, endpile, deck, or discard
-*/
-fun cardInPile[c: Card, gs: GameState, p: Pile]: Boolean {
-    (c = gs.columnTop[p]) or (c in gs.columnTop[p].^(gs.cardBelow))
-}
-
-fun cardInEndPile[c: Card, gs: GameState, ep: EndPile]: Boolean {
-    (c = gs.endPileTop[ep]) or (c in gs.endPileTop[ep].^(gs.cardBelow))
-}
-
-fun cardInDeck[c: Card, gs: GameState, d: Deck]: Boolean {
-    (c = gs.deckTop) or (c in gs.deckTop.^(gs.cardBelow))
-}
-
-fun cardInDiscard[c: Card, gs: GameState, dis: Discard]: Boolean {
-    (c = gs.discardTop) or (c in gs.discardTop.^(gs.cardBelow))
-}
-
-
+/* WELLFORMED-NESS */
 pred general_wellformed {
     // each suit has same number of cards
     all disj s1, s2: Suit | {
@@ -108,6 +89,16 @@ pred general_wellformed {
                 gs.cardBelow[c1] != gs.cardBelow[c2]
             }
         }
+
+        // nothing above discard top or deck top
+        some gs.deckTop implies {
+            all c: Card | gs.cardBelow[c] != gs.deckTop
+        }
+
+        some gs.discardTop implies {
+            all c: Card | gs.cardBelow[c] != gs.discardTop
+        }
+
 
         // face down properties when in deck or in discard
         all c: Card | inDeck[gs, c] implies gs.faceDown[c] = True
@@ -274,12 +265,6 @@ pred twelve_init[gs: GameState] {
     #{c: Card | reachable[c, gs.deckTop, gs.cardBelow]} = 5
 
     wellformed_initial[gs]
-}
-
-pred completedEndPile[gs: GameState, ep: EndPile] {
-    some gs.endPileTop[ep]
-    gs.endPileTop[ep].rank = 3 
-    validEndPile[gs, ep]
 }
 
 
@@ -698,6 +683,12 @@ pred moveEndPileToEmptyPile[targetCard: Card, srcEP: EndPile, destP: Pile, pre, 
 Game properties predicates
 */
 
+pred completedEndPile[gs: GameState, ep: EndPile] {
+    some gs.endPileTop[ep]
+    all c: Card | gs.endPileTop[ep].rank >= c.rank
+    validEndPile[gs, ep]
+}
+
 pred gameComplete[gs: GameState] {
     all ep: EndPile | completedEndPile[gs, ep]
     all p: Pile | no gs.columnTop[p]
@@ -706,21 +697,21 @@ pred gameComplete[gs: GameState] {
 }
 
 
-pred stayComplete {
-    all gs: GameState | gameComplete[gs] implies {
-         all post: GameState | reachable[post, gs, next] implies {
-            all ep: EndPile | gs.endPileTop[ep] = post.endPileTop[ep]
-            all p: Pile | gs.columnTop[p] = post.columnTop[p]
+// pred stayComplete {
+//     all gs: GameState | gameComplete[gs] implies {
+//          all post: GameState | reachable[post, gs, next] implies {
+//             all ep: EndPile | gs.endPileTop[ep] = post.endPileTop[ep]
+//             all p: Pile | gs.columnTop[p] = post.columnTop[p]
             
-            all c: Card | {
-                gs.cardBelow[c] = post.cardBelow[c]
-                gs.faceDown[c] = post.faceDown[c]
-            }
-            no post.deckTop
-            no post.discardTop
-        }
-    }
-} //?
+//             all c: Card | {
+//                 gs.cardBelow[c] = post.cardBelow[c]
+//                 gs.faceDown[c] = post.faceDown[c]
+//             }
+//             no post.deckTop
+//             no post.discardTop
+//         }
+//     }
+// } 
 
 pred winnable {
     some gs: GameState | {
@@ -749,35 +740,23 @@ pred validMove[pre: GameState, post: GameState] {
 }
 
 pred validGame {
-    twelve_wellformed
     twelve_init[Solitaire.init] 
 
-    all disj gs1, gs2: GameState | {
-    not (
-            gs1.deckTop = gs2.deckTop and
-            gs1.discardTop = gs2.discardTop and
-            (all p: Pile | gs1.columnTop[p] = gs2.columnTop[p]) and
-            (all ep: EndPile | gs1.endPileTop[ep] = gs2.endPileTop[ep]) and
-            (all c: Card | gs1.cardBelow[c] = gs2.cardBelow[c])
-        )
+    all disj gs1, gs2: GameState | not {
+        gs1.deckTop = gs2.deckTop and
+        gs1.discardTop = gs2.discardTop and
+        (all p: Pile | gs1.columnTop[p] = gs2.columnTop[p]) and
+        (all ep: EndPile | gs1.endPileTop[ep] = gs2.endPileTop[ep]) and
+        (all c: Card | gs1.cardBelow[c] = gs2.cardBelow[c]) and
+        (all c: Card | gs1.faceDown[c] = gs2.faceDown[c])
     }
 
     all gs: GameState | some Solitaire.next[gs] implies validMove[gs, Solitaire.next[gs]]
+    no gs: GameState | Solitaire.next[gs] = Solitaire.init
 }
 
-valid_and_winnable: run {
-    validGame
-    winnable
-} 
-for exactly 12 Card, exactly 3 Pile, exactly 4 EndPile, 20 GameState
-for {next is linear}
 
-one_ep_complete: run {
-    validGame
-    some gs: GameState | some ep: EndPile | completedEndPile[gs, ep]
-} for exactly 12 Card, exactly 3 Pile, exactly 4 EndPile, 8 GameState
-for {next is linear}
-
+// GAME STATES
 
 one_move_pile_to_pile: run {
     twelve_wellformed
@@ -824,68 +803,68 @@ game_complete: run {
 
 
 // TEST MOVEMENTS
-test_drawCard: run {
+mv_drawCard: run {
     twelve_wellformed
     some pre, post: GameState | drawCard[pre, post]
 } for exactly 2 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
 for {next is linear}
 
-test_resetDeck: run {
+mv_resetDeck: run {
     twelve_wellformed
     some pre, post: GameState | resetDeck[pre, post]
 } for exactly 2 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
 for {next is linear}
 
-test_movePileToPile: run {
+mv_movePileToPile: run {
     twelve_wellformed
     some pre, post: GameState, c1, c2: Card, p1, p2: Pile | 
         movePileToPile[c1, c2, p1, p2, pre, post]
 } for exactly 2 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
 for {next is linear}
 
-test_movePileToEmptyPile: run {
+mv_movePileToEmptyPile: run {
     twelve_wellformed
     some pre, post: GameState, c: Card, p1, p2: Pile | 
         movePileToEmptyPile[c, p1, p2, pre, post]
 } for exactly 2 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
 for {next is linear}
 
-test_movePileToEndPile: run {
+mv_movePileToEndPile: run {
     twelve_wellformed
     some pre, post: GameState, c: Card, p: Pile, ep: EndPile | 
         movePileToEndPile[c, p, ep, pre, post]
 } for exactly 2 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
 for {next is linear}
 
-test_moveEndPileToPile: run {
+mv_moveEndPileToPile: run {
     twelve_wellformed
     some pre, post: GameState, c1, c2: Card, ep: EndPile, p: Pile | 
         moveEndPileToPile[c1, c2, ep, p, pre, post]
 } for exactly 2 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
 for {next is linear}
 
-test_moveEndPileToEmptyPile: run {
+mv_moveEndPileToEmptyPile: run {
     twelve_wellformed
     some pre, post: GameState, c: Card, ep: EndPile, p: Pile | 
         moveEndPileToEmptyPile[c, ep, p, pre, post]
 } for exactly 2 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
 for {next is linear}
 
-test_moveDiscardToPile: run {
+mv_moveDiscardToPile: run {
     twelve_wellformed
     some pre, post: GameState, c: Card, p: Pile | 
         moveDiscardToPile[c, p, pre, post]
 } for exactly 2 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
 for {next is linear}
 
-test_moveDiscardToEmptyPile: run {
+mv_moveDiscardToEmptyPile: run {
     twelve_wellformed
     some pre, post: GameState, c: Card, p: Pile | 
         moveDiscardToEmptyPile[c, p, pre, post]
 } for exactly 2 GameState, exactly 12 Card, exactly 3 Pile, exactly 4 EndPile
 for {next is linear}
 
-test_moveDiscardToEndPile: run {
+mv_moveDiscardToEndPile: run {
     twelve_wellformed
     some pre, post: GameState, c: Card, ep: EndPile | 
         moveDiscardToEndPile[c, ep, pre, post]
@@ -893,10 +872,26 @@ test_moveDiscardToEndPile: run {
 for {next is linear}
 
 
+// END STAGE
+one_ep_complete: run {
+    validGame
+    some gs: GameState | some ep: EndPile | completedEndPile[gs, ep]
+} 
+for exactly 12 Card, exactly 3 Pile, exactly 8 GameState
+for {next is linear}
+
+valid_and_winnable: run {
+    validGame
+    winnable
+} 
+for exactly 12 Card, exactly 3 Pile, exactly 4 EndPile, 20 GameState
+for {next is linear}
+
 valid_not_winnable: run {
     validGame
     not winnable
-} for exactly 12 Card, exactly 3 Pile, exactly 4 EndPile, 20 GameState
+} 
+for exactly 12 Card, exactly 3 Pile, exactly 4 EndPile, 20 GameState
 for {next is linear}
 
 stuck: run {
@@ -905,7 +900,8 @@ stuck: run {
         not gameComplete[gs]
         no post: GameState | validMove[gs, post]
     }
-} for exactly 12 Card, exactly 3 Pile, exactly 4 EndPile, 10 GameState
+} 
+for exactly 12 Card, exactly 3 Pile, exactly 4 EndPile, 10 GameState
 for {next is linear}
 
 

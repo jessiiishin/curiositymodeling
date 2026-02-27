@@ -721,17 +721,22 @@ pred winnable {
 }
 
 pred validMove[pre: GameState, post: GameState] {
-    -- GUARD
-    // wellformed
-    // not winning, game is not finished
     twelve_wellformed
     not gameComplete[pre]
     
-    -- ACTION
-   
-
-    -- FRAME CONDITION
+    some c, c2: Card, p, p2: Pile, ep: EndPile |
+        drawCard[pre, post] or
+        resetDeck[pre, post] or
+        movePileToPile[c, c2, p, p2, pre, post] or
+        movePileToEmptyPile[c, p, p2, pre, post] or
+        movePileToEndPile[c, p, ep, pre, post] or
+        moveEndPileToPile[c, c2, ep, p, pre, post] or
+        moveEndPileToEmptyPile[c, ep, p, pre, post] or
+        moveDiscardToPile[c, p, pre, post] or
+        moveDiscardToEmptyPile[c, p, pre, post] or
+        moveDiscardToEndPile[c, ep, pre, post]
 }
+
 
 one_move_pile_to_pile: run {
     twelve_wellformed

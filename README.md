@@ -77,7 +77,7 @@ Predicates:
     - Defines what a valid move is. Player can take one of the following moves:
         - moveToPile
 
-- moveToPileGeneralGuard
+- moveToPileGeneralGuard:
 - movePileToPileGeneralFrame
 - movePileToEmptyPile:
 - movePileToPile:

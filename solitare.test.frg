@@ -162,8 +162,9 @@ test suite for twelve_init {
 	assert some gs: GameState | gameComplete[gs] is inconsistent with twelve_init
 }
 
-test suite for 
+
 // test that endpiles always include all the ranks when complete
+// face down cards dont need to have color alternation and also doesn't need to be in order
 
 
 /* 
@@ -171,6 +172,10 @@ test suite for
     Predicates for valid moves
 --------------------------------------------------
 */
+
+pred nothingChanges {
+    
+}
 
 
 /* 

@@ -170,7 +170,11 @@ pred validPile[gs: GameState, p: Pile] {
     some gs.columnTop[p] implies gs.faceDown[gs.columnTop[p]] = False
 
     // alternate colors
-    all c: Card | (inPile[gs, p, c] and some gs.cardBelow[c] and inPile[gs, p, gs.cardBelow[c]]) implies {
+    all c: Card | (inPile[gs, p, c] and 
+        some gs.cardBelow[c] and 
+        inPile[gs, p, gs.cardBelow[c]] and 
+        gs.faceDown[c] = False and 
+        gs.faceDown[gs.cardBelow[c]] = False) implies {
         c.color != gs.cardBelow[c].color
     }
 
@@ -180,9 +184,10 @@ pred validPile[gs: GameState, p: Pile] {
             gs.faceDown[c] = True implies gs.faceDown[gs.cardBelow[c]] = True
         }
     }
-    // cards in pile are always in ascending order from top to bottom
-    all c: Card | (inPile[gs, p, c] and gs.faceDown[c] = False and gs.faceDown[cardBelow[c]]) implies {
-        gs.cardBelow[c].rank > c.rank
+
+    // cards in pile are always in ascending order
+    all c: Card | (inPile[gs, p, c] and gs.faceDown[c] = False and gs.faceDown[gs.cardBelow[c]] = False) implies {
+        some gs.cardBelow[c] implies gs.cardBelow[c].rank = add[c.rank, 1]
     }
 }
 
@@ -437,6 +442,9 @@ pred movePileToPile[targetCard, destCard: Card, srcP, destP: Pile, pre, post: Ga
 
     // targetCard is in the pile somewhere
     inPile[pre, srcP, targetCard]
+
+    // source pile and destination pile is different
+    srcP != destP
 
     // everything above targetCard in src pile is also face up
     all c: Card | (inPile[pre, srcP, c] and reachable[targetCard, c, pre.cardBelow]) implies {

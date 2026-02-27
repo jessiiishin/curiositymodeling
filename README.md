@@ -23,82 +23,108 @@ how to model a game that's winnable, using a smaller game with only 12 cards tot
 
 ## Model Design and Visualization
 
-### Signatures and Predicates
+### Design Choices
 
-#### Signatures
+Our model represents the game in snapshots through the `GameState` sig. Each `GameState` tracks the top card of the deck, discard pile, each tableau pile and end piles. It also has a `cardBelow` set that encodes the stack structure, and a `faceDown` set that tells us whether the card is face up or face down.
 
-- Boolean (True, False):
-    - Abstract sig extended by True and False.
-    - Represents rudimentary boolean logic.
+### Run Statements
 
-- Suit (Heart, Diamond, Spade, Clover):
-    - Abstract sig extended by Heart, Diamond, Spade, Clover.
-    - Represents the four suits of a standard 52 card deck.
+We wrote roughly three different types of run statements:
 
-- Color (Red, Black):
-    - Abstract sig extended by Red, Black.
-    - Represents the two colors that a given card can be.
+- **Single-state sanity checks**: `twelve_cards`, `twelve_cards_wellformed_deal`, `valid_ep`, `game_complete` -- verifies that wellformed and initial/complete states exist at all.
+- **Transitions:** `mv_drawCard`, `mv_resetDeck`, `mv_movePileToPile`, etc. -- each verifies that a specific move predicate can be satisfied between two game states.
+- **Game traces:** `valid_and_winnable`, `valid_not_winnable`, `stuck` — full game traces that are winnable, unwinnable, or reach some stuck position.
 
-- Solitaire
-- GameState
-- Card
-- Pile
-- EndPile
-- Deck
-- Discard
+### Visualization
 
-#### Predicates
+As part of our model, we wrote a custom visualizer `layout.cnd`. However, it does not properly allow us to visualize multi-state games. It is recommended and useful only in single-state environments.
 
-- general_wellformed:
-    - Enforces that the deals (whatever the number of cards are) are wellformed.
-    - Cards have a suits and colors that correspond to each other, no duplicate cards, the number
-      of foundations = number of suits, a stack of cards is linear, and cards cannot appear in
-      multiple stacks (deck, pile, endpile, etc.) at once.
+- We project onto the `GameState`
+- `cardBelow` edges show the stacking and linear structure. Follow them downward to read a pile from top to bottom.
+- `faceDown` edges show `True` or `False` for each card in each state.
+- `columnTop`, `deckTop`, `discardTop`, and `endPileTop` edges show the entry points into each stack.
 
-- twelve_wellformed:
-    - Enforces that there are twelve wellformed cards, ranks from 1 to 3.
+For multi-state traces, the projection onto `GameState` allows us to step through each `GameState` and observe the changes.
 
-- wellformed_initial:
-    - Defines what a good starting state is like.
-    - Tableau cards in piles should all be facing down except for the topmost one, EndPiles should
-      be empty, piles should not be empty, deck should not be empty, discard should be empty
+### Signatures
 
-- twelve_init:
-    - Defines what a good starting state is like for specifically twelve cards.
-    - 3 piles, first one has 1 card, second one has 2 cards, third has 3. Deck has 6 cards.
+| Sig              | Purpose                                                                                              |
+| ---------------- | ---------------------------------------------------------------------------------------------------- |
+| `Card`           | A playing card with a fixed `suit`, `color`, and `rank`. Static across all game states.              |
+| `Suit` / `Color` | Abstract types for the four suits and two colors.                                                    |
+| `GameState`      | A snapshot of the game: pile tops, deck/discard tops, face-down status, and the below-card relation. |
+| `Pile`           | A tableau column. Cards stack on top of each other following alternating-color, differ-by-one rules. |
+| `EndPile`        | A foundation pile, one per suit, built upward from rank 1.                                           |
+| `Solitaire`      | A singleton holding the initial `GameState` and the `next` transition function.                      |
 
-- validEndPile:
-    - Defines what a valid EndPile (foundation) should be.
-    - Every card should match the EndPile's suit, be in descending order (K->A top to bottom),
-      bottom card rank = 1, all cards face up.
+### Predicates
 
-- completedEndPile:
-    - Defines what a complete EndPile (foundation) should be for twelve cards.
-    - It's a valid EndPile with Topmost card's rank being 3.
+#### Location Helpers
 
-- validMove:
-    - Defines what a valid move is. Player can take one of the following moves:
-        - moveToPile
+These help us determine where a given card is in the game.
 
-- moveToPileGeneralGuard:
-- movePileToPileGeneralFrame
-- movePileToEmptyPile:
-- movePileToPile:
-- moveEndPileToPile:
+| Predicate              | Description                                                                                                        |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `inDeck[gs, c]`        | True if card `c` is in the deck in state `gs`: either it is `deckTop` or reachable from `deckTop` via `cardBelow`. |
+| `inDiscard[gs, c]`     | True if card `c` is in the discard pile: either it is `discardTop` or reachable from it via `cardBelow`.           |
+| `inPile[gs, p, c]`     | True if card `c` is in tableau pile `p`: either it is `columnTop[p]` or reachable from it via `cardBelow`.         |
+| `inEndPile[gs, ep, c]` | True if card `c` is in end pile `ep`: either it is `endPileTop[ep]` or reachable from it via `cardBelow`.          |
 
-- drawCard
-- moveCardToFoundation
-- gameComplete
-- stayComplete
-- winnable
+#### Wellformedness
 
-### Testing
+These specify the wellformedness of each state.
 
-**Documentation**
+| Pred                     | Purpose                                                                                                                                                                                                |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `general_wellformed`     | Invariants holding across all game states: card uniqueness, color/suit consistency, stack linearity (no cycles), exclusivity (each card in exactly one location), and face-up/down rules per location. |
+| `twelve_wellformed`      | Specializes to the 12-card variant by bounding ranks to 1–3.                                                                                                                                           |
+| `validPile`              | A tableau pile must have its top card face-up, alternate colors in the face-up section, and have differ-by-one ranks among consecutive face-up cards.                                                  |
+| `validEndPile`           | A foundation pile must contain only one suit, all face-up, in ascending rank from 1 at the bottom.                                                                                                     |
+| `exclusiveDecksAndPiles` | Every card belongs to exactly one location, with no card appearing in two piles simultaneously.                                                                                                        |
 
-Model Design and Visualization: Give an overview of your model design choices, what checks or run statements you wrote, and what we should expect to see from an instance produced by the Sterling visualizer. How should we look at and interpret an instance created by your spec? Did you create a custom visualization, or did you use the default?
+#### Guard and Frame Helpers
 
-Signatures and Predicates: At a high level, what do each of your sigs and preds represent in the context of the model? Justify the purpose for their existence and how they fit together.
+| Pred                                                             | Purpose                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `moveToPileGeneralGuard[targetCard, destCard, destP, pre]`       | Shared guard for any move that places a card onto a non-empty tableau pile. Checks the two cards are distinct; both are face-up; `targetCard` has rank exactly one less than `destCard`; they are different colors; `destCard` is the current top of `destP`. Used by `movePileToPile` and `moveEndPileToPile`.                                                                                                   |
+| `movePileToPileGeneralFrame[targetCard, srcP, destP, pre, post]` | Shared frame condition for tableau-to-tableau moves. Freezes all end pile tops, all tableau tops except `srcP` and `destP`, the deck top, and the discard top. Freezes all `cardBelow` relations except `targetCard`'s. Freezes all `faceDown` values except `pre.cardBelow[targetCard]` which allows the newly exposed card in `srcP` to be flipped face-up. Used by `movePileToPile` and `movePileToEmptyPile`. |
 
-Testing: What tests did you write to test your model itself? What tests did you write to verify properties about your domain area? Feel free to give a high-level overview of this.
-Documentation: Make sure your model and test files are well-documented. This will help in understanding the structure and logic of your project.
+#### Move Predicates
+
+Each move predicate has a guard, an action and a frame condition.
+
+| Pred                                                                 | Action                                                                                          |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `drawCard[pre, post]`                                                | Flips the top deck card face-up and moves it onto the discard pile.                             |
+| `resetDeck[pre, post]`                                               | Reverses the entire discard pile back into the deck.                                            |
+| `movePileToPile[targetCard, destCard, srcP, destP, pre, post]`       | Moves a card or a stack of cards from one pile to pile.                                         |
+| `movePileToEmptyPile[targetCard, srcP, destP, pre, post]`            | Moves a maximum-rank card to an empty pile.                                                     |
+| `movePileToEndPile[targetCard, srcP, destEP, pre, post]`             | Moves a card from the pile to the end pile.                                                     |
+| `moveEndPileToPile[targetCard, destCard, srcEndP, destP, pre, post]` | Moves a card from one of the end piles into a tableau pile.                                     |
+| `moveEndPileToEmptyPile[targetCard, srcEP, destP, pre, post]`        | Moves a card from one of the end piles into an empty pile. Only possible with the maximum card. |
+| `moveDiscardToPile[targetCard, destP, pre, post]`                    | Moves the top card from the discard pile to a tableau pile.                                     |
+| `moveDiscardToEmptyPile[targetCard, destP, pre, post]`               | Moves the top discard card to an empty tableau pile.                                            |
+| `moveDiscardToEndPile[targetCard, destEP, pre, post]`                | Moves the top discard card directly onto its matching end pile.                                 |
+
+#### Game Predicates
+
+| Pred                       | Purpose                                                                                                                                                  |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `completedEndPile[gs, ep]` | Check if an end pile is completed for a given state. Useful for when all end piles are completed.                                                        |
+| `gameComplete[gs]`         | Check if the game has been won. True when all end piles are completed, and all the other piles are empty.                                                |
+| `winnable`                 | Checks if some game is winnable based on the initial state.                                                                                              |
+| `validMove[pre, post]`     | Checks for if a move from some `pre` state to `post` state is valid.                                                                                     |
+| `validGame`                | The top-level game trace predicate. Requires wellformedness across all states, a wellformed initial state, and for all moves between traces to be valid. |
+
+## Testing
+
+## Documentation
+
+The model file is organized into clearly labeled sections:
+
+1. **Type definitions** — suits, colors, cards, piles
+2. **Wellformedness predicates** — invariants that must hold in every game state
+3. **Location predicates** — `inDeck`, `inDiscard`, `inPile`, `inEndPile`
+4. **Move predicates** — one per legal action, each with guard/action/frame comments
+5. **Game-level predicates** — `validMove`, `validGame`, `winnable`, `gameComplete`
+6. **Run statements** — grouped by purpose (sanity checks, move tests, game traces)

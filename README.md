@@ -37,7 +37,7 @@ We wrote roughly three different types of run statements:
 
 ### Visualization
 
-As part of our model, we wrote a custom visualizer `layout.cnd`. However, it does not properly allow us to visualize multi-state games. It is recommended and useful only in single-state environments.
+As part of our model, we wrote a custom visualizer `layout.cnd`. However, it does not properly allow us to visualize multi-state games. It is recommended and useful only in single-state environments. **We strongly discourage using our layout visualizer for multi-state visualizations.**
 
 - We project onto the `GameState`
 - `cardBelow` edges show the stacking and linear structure. Follow them downward to read a pile from top to bottom.

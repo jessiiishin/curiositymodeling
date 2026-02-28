@@ -195,7 +195,7 @@ pred validEndPile[gs: GameState, ep: EndPile] {
 
     // cards in desc. order
     all c: Card | inEndPile[gs, ep, c] implies {
-        some gs.cardBelow[c] implies {
+        some gs.cardBelow[c] iff {
             gs.cardBelow[c].rank = subtract[c.rank, 1]
         }
     }
@@ -232,7 +232,7 @@ pred wellformed_initial[gs: GameState] {
         gs.faceDown[gs.columnTop[p]] = False
 
         all c: Card | {
-            (reachable[c, gs.columnTop[p], gs.cardBelow] and c != gs.columnTop[p]) implies {
+            (reachable[c, gs.columnTop[p], gs.cardBelow]) implies {
                 gs.faceDown[c] = True
             }
         }

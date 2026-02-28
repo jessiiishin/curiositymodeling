@@ -270,36 +270,38 @@ test suite for validPile {
     VP_noNumberOrderFaceDown: assert {some gs: GameState, p: Pile | faceDownCardsNoRankOrder and validPile[gs, p]} is sat
     
     // ordering and faceDown stuff
-    VP_topFaceDown: assert {some gs: GameState, p: Pile | topCardFaceDown and validPile[gs, p]} is unsat
+    // VP_topFaceDown: assert {some gs: GameState, p: Pile | topCardFaceDown and validPile[gs, p]} is unsat
     VP_faceUpBelowFaceDown: assert {some c1, c2: Card, gs: GameState, p: Pile | {
         inPile[gs, p, c1] and inPile[gs, p, c2]
         gs.cardBelow[c1] = c2
         gs.faceDown[c1] = True
         gs.faceDown[c2] = False
-    }}
-    VP_multiPileFaceUpNotConsecutive: assert {moreThanOneFaceUpInPileButNotConsecutive and validPile} is unsat
-    VP_multiPileFaceup: assert {multCardsInPileFaceUp and validPile} is sat
+    } and validPile[gs, p]} is unsat
+    // VP_multiPileFaceUpNotConsecutive: assert {some gs: GameState, p: Pile | moreThanOneFaceUpInPileButNotConsecutive and validPile[gs, p]} is unsat
+    VP_multiPileFaceup: assert {some gs: GameState, p: Pile | multCardsInPileFaceUp and validPile[gs, p]} is sat
 
     // face down cards are exempt from color and rank rules
-    VP_noColorAltStillWellformed: assert {faceDownCardsNoColorAlt and validPile} is sat
-    VP_noNumberOrderStillWellformed: assert {faceDownCardsNoRankOrder and validPile} is sat
+    VP_noColorAltStillWellformed: assert {some gs: GameState, p: Pile | faceDownCardsNoColorAlt and validPile[gs, p]} is sat
+    VP_noNumberOrderStillWellformed: assert {some gs: GameState, p: Pile | faceDownCardsNoRankOrder and validPile[gs, p]} is sat
     
     // they can be empty
     VP_emptyPile: assert {some gs: GameState, p: Pile | no gs.columnTop[p] and validPile[gs, p]} is sat
 
     // at least one card needs to be face up
-    VP_noCardFaceUp: assert {some gs: GameState, p: Pile | {
-        no c: Card | {
-            inPile[gs, p, c]
-            gs.faceDown[c] = False
-        }
-    }} is unsat
-    VP_atLeastOneCardFaceUp: assert {some gs: GameState, p: Pile | {
-        some c: Card | {
-            inPile[gs, p, c]
-            gs.faceDown[c] = False
-        }
-    }} is necessary for validPile
+    // VP_noCardFaceUp: assert {some gs: GameState, p: Pile | {
+    //     no c: Card | {
+    //         inPile[gs, p, c]
+    //         gs.faceDown[c] = False
+    //     } and validPile[gs, p]
+    // }} is unsat
+
+    // VP_atLeastOneCardFaceUp: assert {some gs: GameState, p: Pile | {
+    //     some c: Card | {
+    //         inPile[gs, p, c]
+    //         gs.faceDown[c] = False
+    //     }
+    //     and validPile[gs, p]
+    // }} is sat
 }
 
 
@@ -307,20 +309,64 @@ test suite for validEndPile {
     // [gs: GameState, ep: EndPile]
 
     // every card face up
-    VEP_everyCardFaceUp: assert allCardFaceUpInEndP is necessary for validEndPile
+    VEP_everyCardFaceUp: assert {some gs: GameState, ep: EndPile | allCardFaceUpInEndP and validEndPile[gs, ep]} is sat
     VEP_oneCardFaceDown: assert {some gs: GameState, ep: EndPile, c: Card | {
         inEndPile[gs, ep, c]
-        gs.faceDown[c] = True
-    }} is unsat
+        gs.faceDown[c] = True} and validEndPile[gs, ep]
+    } is unsat
     
     // one by one order
     VEP_everyCardIsOneRankDiff: assert {some gs: GameState, ep: EndPile | {
+        general_wellformed
+        some gs.endPileTop[ep]
+        some gs.cardBelow[gs.endPileTop[ep]]
         all disj c1, c2: Card | {
-            (inEndPile[gs, ep, c1] and inEndPile[gs, ep, c2]) implies
-        }}
+            (inEndPile[gs, ep, c1] and inEndPile[gs, ep, c2]) and (gs.cardBelow[c2] = c1) implies {
+                add[c1.rank, 1] = c2.rank
+            }
+        } and validEndPile[gs, ep]}
+    } is sat
+
+    VEP_moreThanOneRankDiff: assert {
+        general_wellformed
+        some gs: GameState, ep: EndPile | {
+            some gs.endPileTop[ep]
+            some gs.cardBelow[endPileTop[ep]]
+            some c1, c2: Card | {
+                gs.cardBelow[c2] = c1
+                c1.rank = 1
+                c2.rank = 3
+            }
+            and validEndPile[gs, ep]
+        } 
+    } is unsat
 
     // same suit same color
+    VEP_sameSuit: assert {
+        general_wellformed
+        some gs: GameState, ep: EndPile | {
+            some gs.endPileTop[ep]
+            all c: Card | inEndPile[gs, ep, c] implies {
+                c.suit = ep.suit
+            }
+            and validEndPile[gs, ep]
+        } 
+    } is sat
+    
+    VEP_sameColor: assert {
+        general_wellformed
+        some gs: GameState, ep: EndPile | {
+            some gs.endPileTop[ep]
+            some gs.cardBelow[endPileTop[ep]]
+            all disj c1, c2: Card | (inEndPile[gs, ep, c1] and inEndPile[gs, ep, c2]) implies {
+                c1.color = c2.color
+            }
+            and validEndPile[gs, ep]
+        }
+    } is sat
+
     // they can be empty
+    VEP_empty: assert {some gs: GameState, ep: EndPile | no gs.endPileTop[ep] and validEndPile[gs, ep]} is sat
 }
 
 
@@ -339,66 +385,48 @@ pred nothingChanges[pre, post: GameState] {
     all c: Card | pre.faceDown[c] = post.faceDown[c]
 }
 
-pred moveFromEndPileToEndPile {
-    some pre, post: GameState | {
-        some disj ep1, ep2: EndPile | pre.endPileTop[ep1] != post.endPileTop[ep2]
-    }
+pred moveFromEndPileToEndPile[pre, post: GameState] {
+    some disj ep1, ep2: EndPile | pre.endPileTop[ep1] != post.endPileTop[ep2]
 }
 
 // two or more cards turned facedown=False
-pred twoCardsTurnedFaceUp {
-    some disj pre, post: GameState | {
-        some disj c1, c2: Card | {
-            pre.faceDown[c1] = True
-            post.faceDown[c1] = False
+pred twoCardsTurnedFaceUp[pre, post: GameState] {
+    some disj c1, c2: Card | {
+        pre.faceDown[c1] = True
+        post.faceDown[c1] = False
 
-            pre.faceDown[c2] = True
-            post.faceDown[c2] = False
-        }
+        pre.faceDown[c2] = True
+        post.faceDown[c2] = False
     }
 }
 
 // a card that was face up became facedown = True
-pred faceUpToDown {
-    some disj pre, post: GameState | {
-        some c: Card | {
-            pre.faceDown[c] = False
-            post.faceDown[c] = True
-        }
+pred faceUpToDown[targetCard: Card, pre, post: GameState] {
+    some c: Card | {
+        c != pre.cardBelow[targetCard]
+        pre.faceDown[c] = False
+        post.faceDown[c] = True
     }
 }
 
 // order of pile changed when card is faceDown
-pred faceDownOrderChanged {
-    some disj pre, post: GameState | {
-        some c: Card | {
-            pre.faceDown[c] = True
-            post.faceDown[c] = True
-            pre.cardBelow[c] != post.cardBelow[c]
-        }
+pred faceDownOrderChanged[pre, post: GameState] {
+    some c: Card | {
+        pre.faceDown[c] = True
+        post.faceDown[c] = True
+        pre.cardBelow[c] != post.cardBelow[c]
     }
 }
 
 // unchanged stacks of cards stay the same before and after (contents, order, top)
-pred unchangedPilesConsistent[changed: Pile] {
-    
+pred unchangedPilesInconsistent[pre, post: GameState, srcP: Pile] {
+    all p: Pile | p != srcP implies {
+        some c: Card | {
+            (inPile[pre, p, c] and (not inPile[post, p, c])) or
+            (inPile[post, p, c] and (not inPile[pre, p, c]))
+        }
+    }
 }
-
-// two or more cards moved at once
-pred twoCardsMovedAtOnce {}
-
-// a card that was not supposed to be turned face up became face up (not at top or not revealed by deck)
-
-
-// somehow the color alternation is not correct after a move
-// trying to move cards from empty stacks should not be possible
-
-// nothing happened but didn't lose (something should happen at every move)
-
-// not all cards were face up but somehow won
-// not all endPiles are complete but somehow won
-// not all piles are empty but somehow won
-
 
 /* 
 --------------------------------------------------
@@ -411,30 +439,265 @@ pred twoCardsMovedAtOnce {}
 
 test suite for moveToPileGeneralGuard {
     // [targetCard, destCard: Card, destP: Pile, pre: GameState]
+    // same target card and post card
+    MTPGG_sameTargetAndDestCard: assert {some targetCard, destCard: Card, destP: Pile, pre: GameState | {
+        targetCard = destCard
+        moveToPileGeneralGuard[targetCard, destCard, destP, pre]}
+    } is unsat
+
+    // move / move onto facedown card
+    MTPGG_moveFaceDownCard: assert {some targetCard, destCard: Card, destP: Pile, pre: GameState | {
+        pre.faceDown[targetCard] = True
+        moveToPileGeneralGuard[targetCard, destCard, destP, pre]}
+    } is unsat
+
+    MTPGG_moveOntoFaceDownCard: assert {some targetCard, destCard: Card, destP: Pile, pre: GameState | {
+        pre.faceDown[destCard] = True
+        moveToPileGeneralGuard[targetCard, destCard, destP, pre]}
+    } is unsat
+
+    // destcard is not top of pile
+    MTPGG_destNotTopOfPile: assert {some targetCard, destCard: Card, destP: Pile, pre: GameState | {
+        pre.columnTop[destP] != destCard
+        moveToPileGeneralGuard[targetCard, destCard, destP, pre]}
+    } is unsat
+
+    MTPGG_destTopOfPile: assert {some targetCard, destCard: Card, destP: Pile, pre: GameState | {
+        pre.columnTop[destP] = destCard
+        moveToPileGeneralGuard[targetCard, destCard, destP, pre]}
+    } is unsat
+
+    // target rank is lower by one than destc
+    MTPGG_rankRule: assert {some targetCard, destCard: Card, destP: Pile, pre: GameState | {
+        add[targetCard.rank, 1] = destCard.rank
+        moveToPileGeneralGuard[targetCard, destCard, destP, pre]}
+    } is sat
+
+    // pre is gameComplete
+    MTPGG_wonGame: assert {some targetCard, destCard: Card, destP: Pile, pre: GameState | {
+        gameComplete[pre]
+        moveToPileGeneralGuard[targetCard, destCard, destP, pre]
+    }} is unsat
+
+    // move into empty pile
+    MTPGG_emptyDestPileLegal: assert {some targetCard, destCard: Card, destP: Pile, pre: GameState | {
+        no pre.columnTop[destP]
+        moveToPileGeneralGuard[targetCard, destCard, destP, pre]
+    }} is sat
+
+    // targetCard can have cards above it
+    MTPGG_targetCardNotTop: assert {some targetCard, destCard, card: Card, destP: Pile, pre: GameState | {
+        reachable[targetCard, card, pre.cardBelow]
+        moveToPileGeneralGuard[targetCard, destCard, destP, pre]
+    }} is sat
 }
 
 test suite for movePileToPileGeneralFrame {
     // [targetCard: Card, srcP, destP: Pile, pre, post: GameState]
+    MPTPGF_faceDownOrderChanged: assert {
+        some targetCard: Card, srcP, destP: Pile, pre, post: GameState | {
+            faceDownOrderChanged[pre, post]
+            movePileToPileGeneralFrame[targetCard, srcP, destP, pre, post]
+        }
+    } is unsat
+
+    MPTPGF_faceDownChanged: assert {
+        some targetCard, destCard: Card, srcP, destP: Pile, pre, post: GameState | {
+            faceUpToDown[targetCard, pre, post]
+            movePileToPileGeneralFrame[targetCard, srcP, destP, pre, post]
+        }
+    } is unsat
+
+    MPTPGF_unchangedPilesConsistent: assert {
+        some targetCard, destCard: Card, srcP, destP: Pile, pre, post: GameState | {
+            unchangedPilesInconsistent[pre, post, srcP]
+            movePileToPileGeneralFrame[targetCard, srcP, destP, pre, post]
+        }
+    } is unsat
+
+    MPTPGF_deckChange: assert {
+        some targetCard, destCard: Card, srcP, destP: Pile, pre, post: GameState | {
+            some c: Card | pre.deckTop = c and post.deckTop != c
+            movePileToPileGeneralFrame[targetCard, srcP, destP, pre, post]
+        }
+    } is unsat
+
+    MPTPGF_endPileChange: assert {
+        some targetCard, destCard: Card, srcP, destP: Pile, pre, post: GameState | {
+            some c: Card, ep: EndPile| pre.endPileTop[ep] = c and post.endPileTop[ep] != c
+            movePileToPileGeneralFrame[targetCard, srcP, destP, pre, post]
+        }
+    } is unsat
+
+    MPTPGF_discardChange: assert {
+        some targetCard, destCard: Card, srcP, destP: Pile, pre, post: GameState | {
+            some c: Card | pre.discardTop = c and post.discardTop != c
+            movePileToPileGeneralFrame[targetCard, srcP, destP, pre, post]
+        }
+    } is unsat
 }
 
 test suite for drawCard {
     // [pre, post: GameState]
+    DC_cardMovedCorrectly: assert {
+        some pre, post: GameState, c: Card | {
+            pre.deckTop = c
+            no post.deckTop
+            no pre.discardTop
+            post.discardTop = c
+            drawCard[pre, post]
+        }
+    } is sat
+
+    DC_emptyDeck: assert {
+        some pre, post: GameState | {
+            no pre.deckTop
+            drawCard[pre, post]
+        }
+    } is unsat
 }
 
 test suite for resetDeck {
     // [pre, post: GameState]
+
+    RD_allDiscardCardsInDeck: assert {
+        some pre, post: GameState | {
+            no post.discardTop
+            no pre.deckTop
+            post.deckTop = pre.discardTop
+            all c: Card | reachable[c, pre.discardTop, pre.cardBelow] implies {
+                reachable[c, post.deckTop, post.cardBelow]   
+            }
+            resetDeck[pre, post]
+        }
+    } is sat
 }
 
 test suite for movePileToEmptyPile {
     // [targetCard: Card, srcP, destP: Pile, pre, post: GameState]
 }
 
+pred colorAlt[gs: GameState] {
+    all p: Pile | {
+        all c: Card | inPile[gs, p, c] and gs.faceDown[c] = True implies {
+            gs.cardBelow[c].color != c.color
+        }
+    }
+}
+
+pred noColorAlt[gs: GameState] {
+    all p: Pile | {
+        some c: Card | inPile[gs, p, c] and gs.faceDown[c] = True implies {
+            gs.cardBelow[c].color = c.color
+        }
+    }
+}
+
+pred rankInOrder[gs: GameState] {
+    all p: Pile | {
+        all c: Card | inPile[gs, p, c] and gs.faceDown[c] = False implies {
+            add[c.rank, 1] = gs.cardBelow[c].rank
+        }
+    }
+}
+
+pred notRankInOrder[gs: GameState] {
+    all p: Pile | {
+        some c: Card | inPile[gs, p, c] and gs.faceDown[c] = False implies {
+            add[c.rank, 1] != gs.cardBelow[c].rank
+        }
+    }
+}
+
+
 test suite for movePileToPile {
     // [targetCard, destCard: Card, srcP, destP: Pile, pre, post: GameState]
+    // same srcp and destp
+    MPTP_sameSrcAndDestPile: assert {some targetCard, destCard: Card, srcP, destP: Pile, pre, post: GameState | {
+        srcP = destP
+        movePileToPile[targetCard, destCard, srcP, destP, pre, post]}
+    } is unsat
+
+    // targetCard doesn't have to be top of pile
+    MPTP_targetNotTopOfPile: assert {some targetCard, destCard: Card, srcP, destP: Pile, pre, post: GameState | {
+        pre.columnTop[srcP] != targetCard
+        movePileToPile[targetCard, destCard, srcP, destP, pre, post]}
+    } is sat
+
+    // pile color alternation is preserved
+    MPTP_yesColorAlt: assert {some targetCard, destCard: Card, srcP, destP: Pile, pre, post: GameState | {
+        colorAlt[pre] and colorAlt[post]
+        movePileToPile[targetCard, destCard, srcP, destP, pre, post]}
+    } is sat
+
+    MPTP_noColorAlt: assert {some targetCard, destCard: Card, srcP, destP: Pile, pre, post: GameState | {
+        colorAlt[pre] and noColorAlt[post]
+        movePileToPile[targetCard, destCard, srcP, destP, pre, post]}
+    } is unsat
+
+    MPTP_noColorAlt2: assert {some targetCard, destCard: Card, srcP, destP: Pile, pre, post: GameState | {
+        noColorAlt[pre] and noColorAlt[post]
+        movePileToPile[targetCard, destCard, srcP, destP, pre, post]}
+    } is unsat
+
+    // pile rank is in order
+    MPTP_noColorAlt2: assert {some targetCard, destCard: Card, srcP, destP: Pile, pre, post: GameState | {
+        noColorAlt[pre] and noColorAlt[post]
+        movePileToPile[targetCard, destCard, srcP, destP, pre, post]}
+    } is unsat
+
+    MPTP_rankInOrder: assert {some targetCard, destCard: Card, srcP, destP: Pile, pre, post: GameState | {
+        rankInOrder[pre] and rankInOrder[post]
+        movePileToPile[targetCard, destCard, srcP, destP, pre, post]}
+    } is sat
+
+    MPTP_notRankInOrder: assert {some targetCard, destCard: Card, srcP, destP: Pile, pre, post: GameState | {
+        rankInOrder[pre] and notRankInOrder[post]
+        movePileToPile[targetCard, destCard, srcP, destP, pre, post]}
+    } is unsat
+
+    MPTP_notRankInOrder2: assert {some targetCard, destCard: Card, srcP, destP: Pile, pre, post: GameState | {
+        notRankInOrder[pre] and notRankInOrder[post]
+        movePileToPile[targetCard, destCard, srcP, destP, pre, post]}
+    } is unsat
 }
 
 test suite for moveEndPileToPile {
     // [targetCard, destCard: Card, srcEndP: EndPile, destP: Pile, pre, post: GameState]
+    MEPTP_notTopToPile: assert {some targetCard, destCard: Card, srcEndP: EndPile, destP: Pile, pre, post: GameState | {
+        targetCard != pre.endPileTop[srcEndP]
+        moveEndPileToPile[targetCard, destCard, srcEndP, destP, pre, post]}
+    } is unsat
+
+    MEPTP_endPileTopNoChange: assert {some targetCard, destCard: Card, srcEndP: EndPile, destP: Pile, pre, post: GameState | {
+        pre.endPileTop[srcEndP] = post.endPileTop[srcEndP]
+        moveEndPileToPile[targetCard, destCard, srcEndP, destP, pre, post]}
+    } is unsat
+
+    MEPTP_endPileEmpty: assert {some targetCard, destCard: Card, srcEndP: EndPile, destP: Pile, pre, post: GameState | {
+        no pre.endPileTop[srcEndP]
+        moveEndPileToPile[targetCard, destCard, srcEndP, destP, pre, post]}
+    } is unsat
+
+    MEPTP_colorAlt: assert {some targetCard, destCard: Card, srcEndP: EndPile, destP: Pile, pre, post: GameState | {
+        targetCard.color != destCard.color
+        moveEndPileToPile[targetCard, destCard, srcEndP, destP, pre, post]}
+    } is sat
+
+    MEPTP_noColorAlt: assert {some targetCard, destCard: Card, srcEndP: EndPile, destP: Pile, pre, post: GameState | {
+        targetCard.color = destCard.color
+        moveEndPileToPile[targetCard, destCard, srcEndP, destP, pre, post]}
+    } is unsat
+
+    MEPTP_rankOrder: assert {some targetCard, destCard: Card, srcEndP: EndPile, destP: Pile, pre, post: GameState | {
+        subtract[targetCard.rank, 1] = destCard.rank
+        moveEndPileToPile[targetCard, destCard, srcEndP, destP, pre, post]}
+    } is sat
+
+    MEPTP_notRankOrder: assert {some targetCard, destCard: Card, srcEndP: EndPile, destP: Pile, pre, post: GameState | {
+        subtract[targetCard.rank, 1] != destCard.rank
+        moveEndPileToPile[targetCard, destCard, srcEndP, destP, pre, post]}
+    } is sat
 }
 
 test suite for movePileToEndPile {
@@ -824,6 +1087,7 @@ test suite for winnable {
 
 test suite for validMove {
     // [pre: GameState, post: GameState]
+    VM_noChange: assert {some pre, post: GameState | nothingChanges and validMove[pre, post]} is unsat 
     
 }
 

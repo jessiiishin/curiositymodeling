@@ -33,7 +33,7 @@ We wrote roughly three different types of run statements:
 
 - **Single-state sanity checks**: `twelve_cards`, `twelve_cards_wellformed_deal`, `valid_ep`, `game_complete` -- verifies that wellformed and initial/complete states exist at all.
 - **Transitions:** `mv_drawCard`, `mv_resetDeck`, `mv_movePileToPile`, etc. -- each verifies that a specific move predicate can be satisfied between two game states.
-- **Game traces:** `valid_and_winnable`, `valid_not_winnable`, `stuck` — full game traces that are winnable, unwinnable, or reach some stuck position.
+- **Game traces:** `valid_and_winnable`, `valid_not_winnable`, `stuck` -- full game traces that are winnable, unwinnable, or reach some stuck position.
 
 ### Visualization
 
@@ -124,7 +124,7 @@ Specifically, our tests fall into three distinctive buckets.
 
 1. **Wellformedness** -- here, we're checking to ensure that our wellformedness predicates are mutually consistent, and produce the expected board.
 2. **Movements** -- we ensure that the `pre` and `post` states following a move are as we expect, including the holding of invariants.
-3. **Game states** -- we check to ensure that the predicates for a winning game and valid games do indeed force the states to obey these requirements
+3. **Game states** -- we check to ensure that the predicates for a winning game and valid games do indeed force the states to obey these requirements.
 
 ## Documentation
 
